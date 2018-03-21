@@ -16,11 +16,11 @@ class simulation {
 private:
 		int time;
 		lattice* l;
-		thermod* t_d;
+		thermodynamics* t_d;
 public:
 
 		simulation(int size, double temperature, double J, double H){
-			this->t_d = new thermod();
+			this->t_d = new thermodynamics(temperature);
 			this->l = new lattice(size, J, H);
 			this->time=0;
 		}

@@ -9,12 +9,17 @@
 #ifndef thermodynamics_h
 #define thermodynamics_h
 
-class thermod{
+#include <gsl/gsl_rng.h>
+#include "rng.h"
+
+class thermodynamics{
 private:
+		rng* r;
     double temperature;
 public:
-		thermod();
-		thermod(double temperature);
+		thermodynamics(double temperature) noexcept;
+		thermodynamics() noexcept;
+		~thermodynamics() noexcept;
     bool flip_q(double dE);
     double get_temp();
     void set_temp(double );

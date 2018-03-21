@@ -9,51 +9,27 @@
 #include <stdio.h>
 #include <gsl/gsl_rng.h>
 #include <cmath>
+#include "rng.h"
+#include "thermodynamics.h"
 
-class rng{
-		const gsl_rng_type * T;
-		gsl_rng * r;
-public:
-		rng(){
-				gsl_rng_env_setup();
-				T = gsl_rng_default;
-				r = gsl_rng_alloc (T);
-		}
+thermodynamics::thermodynamics(double temperature) noexcept{
+	this->temperature = temperature;
+}
 
-		~rng(){
-				gsl_rng_free (r);
-		}
+thermodynamics::thermodynamics() noexcept: thermodynamics::thermodynamics(273.73) {}
 
-		double random_uniform(){
-				return gsl_rng_uniform(r);
-		}
-};
+void thermodynamics::set_temp(double temp){
+		this-> temperature = temp;
+}
 
+thermodynamics::~thermodynamics() noexcept{
+		delete r;
+}
 
-class thermod{
-private:
-		rng* r;
-		double temperature;
-public:
-		thermod();
-		thermod(double temperature){
-
-		}
-
-		void set_temperature(double temp){
-				this-> temperature = temp;
-		}
-
-		bool flip_q(double dE){
-				double p = r->random_uniform();
-				return exp (dE/temperature) > p;
-		}
-
-		~thermod(){
-				delete r;
-		}
-};
-
+bool thermodynamics::flip_q(double dE){
+		double p = r->random_uniform();
+		return exp (dE/temperature) > p;
+}
 
 // int main ()
 // {

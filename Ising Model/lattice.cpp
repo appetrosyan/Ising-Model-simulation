@@ -7,110 +7,100 @@
 //
 
 #include <iostream>
-
+#include "lattice.h"
 using namespace std;
 
-class lattice{
-		int size;
-		short* spin;
-		double J;
-		double H;
-public:
-		lattice(int _size, double _J, double _H){
-				this->size = _size;
-				this->spin = new short(size*size);
-				for(int i=0; i<size*size; i++){
-						spin[i] = 1;
-				}
-				this->J = _J;
-				this->H = _H;
+lattice::lattice(int _size, double _J, double _H) noexcept{
+		this->size = _size;
+		this->spin = new short(size*size);
+		for(int i=0; i<size*size; i++){
+				spin[i] = 1;
 		}
+		this->J = _J;
+		this->H = _H;
+}
 
-		lattice(const lattice& old){
-				this->size = old.size;
-				this->spin = new short(size*size);
-				for(int i=0; i<size*size; i++){
-						this->spin[i] = old.spin[i];
-				}
-				this->J = old.J;
-				this->H = old.H;
+lattice::lattice(const lattice& old) noexcept{
+		this->size = old.size;
+		this->spin = new short(size*size);
+		for(int i=0; i<size*size; i++){
+				this->spin[i] = old.spin[i];
 		}
+		this->J = old.J;
+		this->H = old.H;
+}
 
-		~lattice(){
-				delete[] spin;
+lattice::~lattice(){
+	delete[] spin;
+}
+
+void lattice::print(){
+		cout<<size<<endl<<endl;
+		int area = size*size;
+		for(int i=0; i< area; i++){
+				cout<<spin[i]<<' ';
+				if (i%size ==size-1 ) cout<<endl;
 		}
+		cout<<endl;
+}
 
-		void print(){
-				cout<<size<<endl<<endl;
-				int area = size*size;
-				for(int i=0; i< area; i++){
-						cout<<spin[i]<<' ';
-						if (i%size ==size-1 ) cout<<endl;
-				}
-				cout<<endl;
+short lattice::get(int row, int col){
+		if(row<0 || row >=size){
+				cerr<<"Out of bounds"<<row;
+				return 0;
 		}
-
-		short get(int row, int col){
-				if(row<0 || row >=size){
-						cerr<<"Out of bounds"<<row;
-						return 0;
-				}
-				if(col<0 || col>=size){
-						cerr<<"Out of bounds"<<col;
-						return 0;
-				}
-				return spin[row*size+col];
+		if(col<0 || col>=size){
+				cerr<<"Out of bounds"<<col;
+				return 0;
 		}
+		return spin[row*size+col];
+}
 
-		void flip(int row, int col){
-				if(row<0 || row >=size){
-						cerr<<"Out of bounds:"<<row;
-						return;
-				}
-				if(col<0 || col>=size){
-						cerr<<"Out of bounds:"<<col;
-						return;
-				}
-				spin[row*size + col] *=-1;
+void lattice::flip(int row, int col){
+		if(row<0 || row >=size){
+				cerr<<"Out of bounds:"<<row;
+				return;
 		}
-
-		int get_size(){
-				return size;
+		if(col<0 || col>=size){
+				cerr<<"Out of bounds:"<<col;
+				return;
 		}
+		spin[row*size + col] *=-1;
+}
 
-		double compute_point_energy(int row, int col){
-				int accumulator=0;
-				if (row >= size || col >= size){
-						cerr<<"Out of bounds"<<endl;
-						return 0.0;
-				}
+int lattice::get_size(){
+	return size;
+}
 
-				if(row > 0){
-						accumulator+=get(row-1, col);
-
-				} else{
-						accumulator+=get(size-1,col);
-				}
-				if (row < size - 1){
-						accumulator+=get(row+1, col);
-				} else {
-						accumulator+=get(0, col);
-				}
-
-				if (col>0){
-						accumulator+=get(row, col-1);
-				} else {
-						accumulator+=get(row, size-1);
-				}
-				if (col< size-1) {
-						accumulator+=get(row, col+1);
-				} else {
-						accumulator+=get(row, 0);
-				}
-				return -get(row, col)*accumulator*J - H * get(row, col);
+double lattice::compute_point_energy(int row, int col){
+		int accumulator=0;
+		if (row >= size || col >= size){
+				cerr<<"Out of bounds"<<endl;
+				return 0.0;
 		}
+		if(row > 0){
+				accumulator+=get(row-1, col);
+		} else{
+				accumulator+=get(size-1,col);
+		}
+		if (row < size - 1){
+				accumulator+=get(row+1, col);
+		} else {
+				accumulator+=get(0, col);
+		}
+		if (col>0){
+				accumulator+=get(row, col-1);
+		} else {
+				accumulator+=get(row, size-1);
+		}
+		if (col< size-1) {
+				accumulator+=get(row, col+1);
+		} else {
+				accumulator+=get(row, 0);
+		}
+		return -get(row, col)*accumulator*J - H * get(row, col);
+}
 
-};
 
 // int main(int argc, const char * argv[]) {
 // 		lattice l = lattice (1<<4, 0.5, 0);
