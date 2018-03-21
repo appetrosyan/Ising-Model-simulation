@@ -6,9 +6,19 @@
 //  Copyright © 2018 Aleksandr Petrosyan. All rights reserved.
 //
 
-#ifndef thermodynamics_hpp
-#define thermodynamics_hpp
+#ifndef thermodynamics_h
+#define thermodynamics_h
 
-#include <stdio.h>
+class thermod{
+private:
+    double temperature;
+public:
+		thermod();
+		thermod(double temperature);
+    bool flip_q(double dE);
+    double get_temp();
+    void set_temp(double );
+};
 
-#endif /* thermodynamics_hpp */
+
+#endif /* thermodynamics_h */

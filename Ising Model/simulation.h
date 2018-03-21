@@ -9,5 +9,13 @@
 #ifndef simulation_h
 #define simulation_h
 
+class simulation {
+private:
+    int time;
+    double temperature;
+    lattice l;
+public:
+    void advance(int time_steps);
+};
 
 #endif /* simulation_h */
