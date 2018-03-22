@@ -23,9 +23,7 @@ rng& rng::operator=(const rng& other){
 
 rng::~rng() noexcept
 {
-	std::cerr<<"De allocating rng"<<std::endl;
 	gsl_rng_free (r);
-
 }
 
 double rng::random_uniform()
