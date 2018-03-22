@@ -1,57 +1,79 @@
-//
-//  simluation.cpp
-//  Ising Model
-//
-//  Created by Aleksandr Petrosyan on 21/03/2018.
-//  Copyright © 2018 Aleksandr Petrosyan. All rights reserved.
-//
-
 #include <iostream>
 #include "lattice.h"
 #include "thermodynamics.h"
+#include "rng.h"
 
 using namespace std;
 
-class simulation {
+class simulation
+{
 private:
 		int time;
-		lattice* l;
-		thermodynamics* t_d;
 public:
-
-		simulation(int size, double temperature, double J, double H){
-			this->t_d = new thermodynamics(temperature);
-			this->l = new lattice(size, J, H);
-			this->time=0;
+		thermodynamics t_d;
+		lattice old;
+		lattice neu;
+		simulation(int size, double temperature, double J, double H)
+		{
+			t_d = thermodynamics(temperature);
+			old = lattice(size, J, H);
+			old. print();
+			neu = lattice(size, J, H);
+			neu. print();
+			time=0;
 		}
 
-		void advance(){
-				lattice out = lattice(*l);
-				for (int i=0; i<l->get_size(); i++){
-						for (int j=0; j<l->get_size(); j++){
-								visit(i, j, out);
-						}
-				}
-				time++;
+		~simulation(){
+			cerr<<"De Allocating simulation"<<endl;
 		}
 
-		void advance(int time_steps){
-				for (int i = 0; i< time_steps; i++){
+		void advance()
+		{
+			// cerr<<"calling advance";
+			for (int i=0; i<old.get_size(); i++)
+			{
+					for (int j=0; j<old.get_size(); j++)
+					{
+						// cerr<<i<<" "<<j<<endl;
+						visit(i, j);
+					}
+			}
+			time++;
+		}
+
+		void advance(int time_steps)
+		{
+				for (int i = 0; i< time_steps; i++)
+				{
 						advance();
 				}
 		}
 
-		void visit(int row, int col, lattice out){
+		void visit(int row, int col)
+		{
+			// cerr<<"called visit "<<row<<" "<<col<<endl;
+			double dE = -2* old.compute_point_energy(row, col);
+			// cerr<<"de = "<<dE<<endl;
+			if (dE < 0 || t_d.flip_q(dE)){
+				neu.flip(row, col);
+				// cerr<<"Flip"<<endl;
+			}
+			// cerr<<" "<<t_d.get_temp()<<t_d.flip_q(dE);
 
-				double dE = -2* l->compute_point_energy(row, col);
-				if (dE <0 || t_d->flip_q(dE)) out.flip(row, col);
 		}
 
 
 };
 
-int main(){
-	simulation* s = new simulation(4, 273.73, 1.0, 0.0);
-	s->advance();
+int main()
+{
+	simulation s = simulation(20, 1, 1.0, 0.0);
+	// lattice l = lattice (40, 1.0, 0.0);
+	// l.print();
+	// lattice k = lattice (30, 1.0, 0.0);
+	// k.print();
+	s.advance(500);
+	s.neu.print();
+	// cerr<<endl<<endl<<"Done"<<endl;
 	return 0;
 }

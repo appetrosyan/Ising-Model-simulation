@@ -1,23 +1,17 @@
-//
-//  lattice.h
-//  Ising Model
-//
-//  Created by Aleksandr Petrosyan on 21/03/2018.
-//  Copyright © 2018 Aleksandr Petrosyan. All rights reserved.
-//
-
 #ifndef lattice_h
 #define lattice_h
 
-class lattice{
+class lattice
+{
 private:
 		int size;
-		short* spin;
+		short*  spin;
 		double J;
 		double H;
 public:
 		lattice(int _size, double _J, double _H) noexcept;
 		lattice(const lattice & old) noexcept;
+		lattice() noexcept;
 		~lattice();
 		void print();
 		short get(int row, int col);
@@ -25,4 +19,4 @@ public:
 		int get_size();
 		double compute_point_energy(int row, int col);
 };
-#endif /* lattice_h */
+#endif

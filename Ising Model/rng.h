@@ -1,7 +1,8 @@
 #ifndef RNG_H
 #define RNG_H
 
-class rng{
+class rng
+{
 		const gsl_rng_type * T;
 		gsl_rng * r;
 public:

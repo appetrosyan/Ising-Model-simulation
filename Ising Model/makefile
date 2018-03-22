@@ -14,3 +14,6 @@ lattice.o: lattice.cpp lattice.h
 
 rng.o: rng.cpp rng.h
 	g++ -c ${CXXFLAGS} -o rng.o rng.cpp
+
+clean:
+	rm -rf *.o

@@ -1,34 +1,44 @@
-//
-//  thermodynamics.cpp
-//  Ising Model
-//
-//  Created by Aleksandr Petrosyan on 21/03/2018.
-//  Copyright © 2018 Aleksandr Petrosyan. All rights reserved.
-//
-
-#include <stdio.h>
+#include <iostream>
 #include <gsl/gsl_rng.h>
 #include <cmath>
 #include "rng.h"
 #include "thermodynamics.h"
 
-thermodynamics::thermodynamics(double temperature) noexcept{
-	this->temperature = temperature;
+using namespace std;
+
+thermodynamics::thermodynamics(double temp) noexcept
+{
+	temperature = temp;
 }
 
 thermodynamics::thermodynamics() noexcept: thermodynamics::thermodynamics(273.73) {}
 
-void thermodynamics::set_temp(double temp){
-		this-> temperature = temp;
+void thermodynamics::set_temp(double temp)
+{
+		temperature = temp;
 }
 
-thermodynamics::~thermodynamics() noexcept{
-		delete r;
+thermodynamics& thermodynamics::operator= (const thermodynamics& old)
+{
+		r = old.r;
+		temperature = old.temperature;
+		return* this;
 }
 
-bool thermodynamics::flip_q(double dE){
-		double p = r->random_uniform();
-		return exp (dE/temperature) > p;
+thermodynamics::~thermodynamics() noexcept
+{
+		cerr<<"De allocating thermodynamics"<<endl;
+}
+
+bool thermodynamics::flip_q(double dE)
+{
+	double p = r.random_uniform();
+	return exp (-dE/temperature) > p;
+}
+
+double thermodynamics::get_temp()
+{
+	return temperature;
 }
 
 // int main ()

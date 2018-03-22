@@ -14,12 +14,14 @@
 
 class thermodynamics{
 private:
-		rng* r;
+		rng r;
     double temperature;
 public:
 		thermodynamics(double temperature) noexcept;
+		thermodynamics(const thermodynamics& old) noexcept;
 		thermodynamics() noexcept;
 		~thermodynamics() noexcept;
+		thermodynamics& operator=(const thermodynamics& old);
     bool flip_q(double dE);
     double get_temp();
     void set_temp(double );
