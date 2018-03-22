@@ -27,7 +27,6 @@ lattice::lattice(const lattice& old) noexcept
 
 lattice& lattice::operator= (const lattice& other)
 {
-	// cerr<<"Lattice assignment"<<endl;
 	size = other.size;
 	delete spin;
 	spin = other.spin;
@@ -44,8 +43,6 @@ lattice::lattice() noexcept{
 }
 
 lattice::~lattice(){
-	// cerr<<"De allocating lattice"<<endl;
-	// delete spin; // THis cuases the crash while it shouldn't.
 }
 
 void lattice::print()
@@ -64,12 +61,10 @@ short lattice::get(int row, int col)
 {
 		if(row<0 || row >=size)
 		{
-				// cerr<<"Out of bounds"<<row;
 				return 0;
 		}
 		if(col<0 || col>=size)
 		{
-				// cerr<<"Out of bounds"<<col;
 				return 0;
 		}
 		return spin->at(row*size+col);
@@ -79,12 +74,10 @@ void lattice::flip(int row, int col)
 {
 		if(row<0 || row >=size)
 		{
-				// cerr<<"Out of bounds:"<<row;
 				return;
 		}
 		if(col<0 || col>=size)
 		{
-				// cerr<<"Out of bounds:"<<col;
 				return;
 		}
 		spin->at(row*size + col) *=-1;
