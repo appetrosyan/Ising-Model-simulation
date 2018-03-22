@@ -1,17 +1,14 @@
 #include <iostream>
-#include "lattice.h"
+#include "include/lattice.h"
 #include <vector>
+#include <new>
 using namespace std;
 
 
 lattice::lattice(int _size, double _J, double _H) noexcept
 {
 		size = _size;
-		spin = new short[size * size];
-		for(int i=0; i<size*size; i++)
-		{
-				spin[i] = 1;
-		}
+		spin = new vector<short >(size * size, 1);
 		J = _J;
 		H = _H;
 }
@@ -19,17 +16,27 @@ lattice::lattice(int _size, double _J, double _H) noexcept
 lattice::lattice(const lattice& old) noexcept
 {
 		size = old.size;
-		spin = new short[size*size];
+		spin = new vector<short> (size*size, 1);
 		for(int i=0; i<size*size; i++)
 		{
-				this->spin[i] = old.spin[i];
+				this->spin->at(i) = old.spin->at(i);
 		}
-		this->J = old.J;
-		this->H = old.H;
+		J = old.J;
+		H = old.H;
+}
+
+lattice& lattice::operator= (const lattice& other)
+{
+	// cerr<<"Lattice assignment"<<endl;
+	size = other.size;
+	delete spin;
+	spin = other.spin;
+	J = other.J;
+	H = other.H;
+	return * this;
 }
 
 lattice::lattice() noexcept{
-	cerr<<"Spin is NULL"<<endl;
 	size = 0;
 	spin = NULL;
 	J = 1.0;
@@ -37,8 +44,8 @@ lattice::lattice() noexcept{
 }
 
 lattice::~lattice(){
-	cerr<<"De allocating lattice"<<endl;
-	// delete[] spin;
+	// cerr<<"De allocating lattice"<<endl;
+	// delete spin; // THis cuases the crash while it shouldn't.
 }
 
 void lattice::print()
@@ -47,7 +54,7 @@ void lattice::print()
 		int area = size*size;
 		for(int i=0; i< area; i++)
 		{
-				cout<<spin[i]<<' ';
+				cout<<spin->at(i)<<' ';
 				if (i%size ==size-1 ) cout<<endl;
 		}
 		cout<<endl;
@@ -57,30 +64,30 @@ short lattice::get(int row, int col)
 {
 		if(row<0 || row >=size)
 		{
-				cerr<<"Out of bounds"<<row;
+				// cerr<<"Out of bounds"<<row;
 				return 0;
 		}
 		if(col<0 || col>=size)
 		{
-				cerr<<"Out of bounds"<<col;
+				// cerr<<"Out of bounds"<<col;
 				return 0;
 		}
-		return spin[row*size+col];
+		return spin->at(row*size+col);
 }
 
 void lattice::flip(int row, int col)
 {
 		if(row<0 || row >=size)
 		{
-				cerr<<"Out of bounds:"<<row;
+				// cerr<<"Out of bounds:"<<row;
 				return;
 		}
 		if(col<0 || col>=size)
 		{
-				cerr<<"Out of bounds:"<<col;
+				// cerr<<"Out of bounds:"<<col;
 				return;
 		}
-		spin[row*size + col] *=-1;
+		spin->at(row*size + col) *=-1;
 }
 
 
@@ -94,7 +101,7 @@ double lattice::compute_point_energy(int row, int col)
 		int accumulator=0;
 		if (row >= size || col >= size)
 		{
-				cerr<<"Out of bounds"<<endl;
+				// cerr<<"Out of bounds"<<endl;
 				return 0.0;
 		}
 		if(row > 0)
@@ -135,10 +142,11 @@ double lattice::compute_point_energy(int row, int col)
 
 // int main() {
 // 		lattice k = lattice (40, 1.0, 0.0);
-// 		// lattice m = lattice (30, 1.0, 0.0);
-// 		// m.compute_point_energy(0,0);
-// 		// k.print();
-// 		// m.print();
-// 		// delete &k;
+// 		lattice m = lattice (30, 1.0, 0.0);
+// 		m.compute_point_energy(0,0);
+// 		k.print();
+// 		m.print();
+// 		k = m;
+// 		k.print();
 // 		return 0;
 // }

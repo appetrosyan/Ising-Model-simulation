@@ -1,6 +1,8 @@
 #ifndef RNG_H
 #define RNG_H
 
+#include <gsl/gsl_rng.h>
+
 class rng
 {
 		const gsl_rng_type * T;

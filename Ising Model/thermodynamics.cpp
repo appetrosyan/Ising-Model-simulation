@@ -20,14 +20,16 @@ void thermodynamics::set_temp(double temp)
 
 thermodynamics& thermodynamics::operator= (const thermodynamics& old)
 {
-		r = old.r;
-		temperature = old.temperature;
-		return* this;
+	cerr<<"assignment of thermo"<<endl;
+	r = old.r;
+	temperature = old.temperature;
+	return* this;
 }
 
 thermodynamics::~thermodynamics() noexcept
 {
 		cerr<<"De allocating thermodynamics"<<endl;
+		return;
 }
 
 bool thermodynamics::flip_q(double dE)

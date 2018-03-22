@@ -1,7 +1,8 @@
 #include <iostream>
-#include "lattice.h"
-#include "thermodynamics.h"
-#include "rng.h"
+#include <math.h>
+#include "include/lattice.h"
+#include "include/rng.h"
+#include <gsl/gsl_rng.h>
 
 using namespace std;
 
@@ -9,17 +10,22 @@ class simulation
 {
 private:
 		int time;
-public:
-		thermodynamics t_d;
+		rng r = rng();
 		lattice old;
+		double temperature;
+public:
 		lattice neu;
-		simulation(int size, double temperature, double J, double H)
+		// thermodynamics t_d;
+		simulation(int size, double temp, double J, double H)
 		{
-			t_d = thermodynamics(temperature);
+			// cerr<<"Entered constructor"<<endl;
+			// t_d = thermodynamics(temperature);
+			// cerr<<"Passed thermo assignment";
 			old = lattice(size, J, H);
-			old. print();
+			// old. print();
 			neu = lattice(size, J, H);
-			neu. print();
+			temperature = temp;
+			// neu. print();
 			time=0;
 		}
 
@@ -29,16 +35,18 @@ public:
 
 		void advance()
 		{
-			// cerr<<"calling advance";
+			// old.print();
+			// neu.print();
 			for (int i=0; i<old.get_size(); i++)
 			{
 					for (int j=0; j<old.get_size(); j++)
 					{
-						// cerr<<i<<" "<<j<<endl;
 						visit(i, j);
 					}
 			}
+			old = lattice(neu);
 			time++;
+			// cerr<<" ---"<<time<<endl;
 		}
 
 		void advance(int time_steps)
@@ -46,20 +54,32 @@ public:
 				for (int i = 0; i< time_steps; i++)
 				{
 						advance();
+						cout<<mean_magnetisation()<<endl;
 				}
 		}
 
 		void visit(int row, int col)
 		{
-			// cerr<<"called visit "<<row<<" "<<col<<endl;
+
 			double dE = -2* old.compute_point_energy(row, col);
-			// cerr<<"de = "<<dE<<endl;
-			if (dE < 0 || t_d.flip_q(dE)){
+			double p = r.random_uniform();
+			if (dE < 0 || exp (-dE/temperature) > p)
+			{
 				neu.flip(row, col);
 				// cerr<<"Flip"<<endl;
 			}
 			// cerr<<" "<<t_d.get_temp()<<t_d.flip_q(dE);
+		}
 
+		double mean_magnetisation(){
+			double accumulator=0;
+			int max = old.get_size();
+			for (int i=0; i<max; i++){
+				for (int j=0; j<max; j++){
+					accumulator+=old.get(i, j);
+				}
+			}
+			return accumulator/(max*max);
 		}
 
 
@@ -67,13 +87,11 @@ public:
 
 int main()
 {
-	simulation s = simulation(20, 1, 1.0, 0.0);
-	// lattice l = lattice (40, 1.0, 0.0);
-	// l.print();
-	// lattice k = lattice (30, 1.0, 0.0);
+	simulation s = simulation(100, 1, 0.3, 0.0);
 	// k.print();
-	s.advance(500);
-	s.neu.print();
+	// s.neu.print();
+	s.advance(15);
+	// delete& s;
 	// cerr<<endl<<endl<<"Done"<<endl;
 	return 0;
 }
