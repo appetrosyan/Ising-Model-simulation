@@ -43,7 +43,8 @@ J(0),
 H(0)
 {}
 
-lattice::~lattice(){
+lattice::~lattice()
+{
 }
 
 char inline symbol(int in)
@@ -81,7 +82,8 @@ int lattice::get_size()
 
 double lattice::compute_point_energy(int row, int col)
 {
-	int accumulator=get(row+1, col)+get(row-1, col) + get(row, col-1) + get(row, col+1);
+	int accumulator = get(row+1, col) + get(row-1, col) +
+					  get(row, col-1) + get(row, col+1);
 	return -get(row, col)*(accumulator*J + H );
 }
 
@@ -99,7 +101,14 @@ int inline to_periodic(int row, int col, int sz){
 	return row* sz + col;
 }
 
-
+int lattice::total_magnetisation(){
+	int sum=0;
+	#pragma omp parallel for reduction(+:sum)
+	for (int i=0; i< size*size; i++ ){
+		sum+= spin->at(i);
+	}
+	return sum;
+}
 
 
 // int main() {

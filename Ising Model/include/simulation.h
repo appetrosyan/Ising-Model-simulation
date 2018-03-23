@@ -1,11 +1,3 @@
-//
-//  simulation.h
-//  Ising Model
-//
-//  Created by Aleksandr Petrosyan on 21/03/2018.
-//  Copyright © 2018 Aleksandr Petrosyan. All rights reserved.
-//
-
 #ifndef simulation_h
 #define simulation_h
 
@@ -18,13 +10,14 @@ class simulation
 private:
 		int time=0;
 		rng r = rng();
+		lattice spins;
 		double temperature;
-		double mean_magnetisation;
+		double mean_magnetisation=1;
 		double mean_energy;
-		double total_magnetisation = 1;
+		double total_magnetisation;
+		double total_energy;
 public:
-		lattice neu;
-		lattice old;
+
 		int print_interval=1;
 		simulation(int size, double temp, double J, double H);
 		simulation(const simulation& other);
@@ -36,6 +29,7 @@ public:
 		void advance(int time_steps, FILE* output);
 		double compute_energy(lattice & other);
 		double compute_dE(int row, int col);
+		// double point_energy_with_neightbours(int row, int col);
 };
 
 #endif /* simulation_h */
