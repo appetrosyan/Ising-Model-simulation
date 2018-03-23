@@ -1,5 +1,6 @@
 #ifndef lattice_h
 #define lattice_h
+#include <vector>
 
 class lattice
 {
@@ -20,4 +21,5 @@ public:
 		int get_size();
 		double compute_point_energy(int row, int col);
 };
+
 #endif

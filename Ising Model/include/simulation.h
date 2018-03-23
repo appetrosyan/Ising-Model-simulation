@@ -18,22 +18,24 @@ class simulation
 private:
 		int time=0;
 		rng r = rng();
-		lattice old;
 		double temperature;
 		double mean_magnetisation;
 		double mean_energy;
+		double total_magnetisation = 1;
 public:
 		lattice neu;
+		lattice old;
 		int print_interval=1;
 		simulation(int size, double temp, double J, double H);
 		simulation(const simulation& other);
 		simulation& operator= (const simulation& other);
 		~simulation(){}
 		void advance();
-		void print_status(FILE* fp);
+		// void inline visit(int, int);
+		void inline print_status(FILE* fp);
 		void advance(int time_steps, FILE* output);
-		void visit(int row, int col);
-		void compute_means();
+		double compute_energy(lattice & other);
+		double compute_dE(int row, int col);
 };
 
 #endif /* simulation_h */
