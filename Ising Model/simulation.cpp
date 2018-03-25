@@ -37,11 +37,16 @@ simulation::simulation(int new_size, double new_temp, double new_J, double new_H
 
 void simulation::advance(int time_steps, FILE* output)
 {
+	int area = spins.get_size() * spins.get_size();
 	for (int i = 0; i< time_steps; i++)
 	{
 		if (time % print_interval ==0)
 		{
 			print_status(output);
+			total_magnetisation = spins.total_magnetisation();
+			mean_magnetisation = total_magnetisation/area;
+			total_energy = compute_energy(spins);
+			mean_energy = total_energy/area;
 		}
 		advance();
 	}
@@ -49,8 +54,7 @@ void simulation::advance(int time_steps, FILE* output)
 
 void simulation::advance()
 {
-	// cout<<"advancing--------"<<endl;
-	// #pragma omp parallel for ordered reduction(+:total_energy) reduction(+:total_magnetisation)
+	#pragma omp target teams distribute parallel for collapse(2)
 	for (int row=0; row<spins.get_size(); row++)
 	{
 		for (int col=spins.get_size(); col>=0; col--)
@@ -59,41 +63,22 @@ void simulation::advance()
 			double p = r.random_uniform();
 			if (exp (-dE/temperature) > p)
 			{
-				// #pragma omp ordered
-				total_energy+=dE;
-				// cout<<total_energy<<endl;
-				// cout<<"flip "<<row<<" "<<col<<":\t"<<dE<<"\t"<<exp (-dE/temperature)<<"\t"<<p<<endl;
-				total_magnetisation-=2*spins.get(row, col);
+				// total_energy+=dE; //Doesn't work on multithreaded workloads
+				// total_magnetisation-=2*spins.get(row, col);
 				spins.flip(row, col);
 			}
 		}
 	}
-	int area = spins.get_size()*spins.get_size();
-	mean_magnetisation = total_magnetisation/area;
-	// //Testing code
-	// double energy_estimate = compute_energy(spins);
-	// double magnetisation_estimate = spins.total_magnetisation();
-	// if(total_energy != energy_estimate){
-	// 	cout<<total_energy<<"! = "<<energy_estimate<<":: "<<time<<endl;
-	// 	total_energy = energy_estimate;
-	// 	// spins.print();
-	// }
-	// if(total_magnetisation != magnetisation_estimate){
-	// 	cout<<total_magnetisation<<"! = "<<magnetisation_estimate<<": "<<time<<endl;
-	// 	total_magnetisation = magnetisation_estimate;
-	// }
-	// // end testing code
-	mean_energy= total_energy/area;
 	time++;
 }
 
 
 double simulation::compute_dE(int row, int col){
-	//Real code
 	double e_0 = 2*spins.compute_point_energy(row, col);
 	spins.flip(row, col);
 	double e_1 = 2*spins.compute_point_energy(row, col);
 	spins.flip(row, col);
+
 	// Naive implementation
 	// double spins_energy = compute_energy(spins);
 	// spins.flip(row, col);
@@ -105,7 +90,7 @@ double simulation::compute_dE(int row, int col){
 	// if((new_energy - spins_energy) !=(e_1 - e_0)){
 	// 	cout<<(e_1 - e_0)<<" "<<(new_energy - spins_energy)<<endl;
 	// }
-	return e_1-e_0;
+	return e_1 - e_0;
 }
 
 void inline simulation::print_status(FILE* f)
@@ -118,11 +103,10 @@ double simulation::compute_energy(lattice& other)
 {
 	double energy=0;
 	int max = other.get_size();
-
-	#pragma omp parallel for collapse(2) reduction(+:energy)
-	for (int i=0; i<max; i++)
+	#pragma omp target teams distribute parallel for collapse(2) reduction(+:energy)
+	for (int i=0; i < max; i++)
 	{
-		for (int j=0; j<max; j++)
+		for (int j=0; j < max; j++)
 		{
 			energy+=other.compute_point_energy(i, j);
 		}

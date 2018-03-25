@@ -45,6 +45,7 @@ H(0)
 
 lattice::~lattice()
 {
+	delete spin;
 }
 
 char inline symbol(int in)
@@ -91,20 +92,25 @@ int inline abs(int in){
 	return in>0? in:-in;
 }
 
-int inline to_periodic(int row, int col, int sz){
-	if(row<0 || row>=sz){
+int inline to_periodic(int row, int col, int sz)
+{
+	if(row<0 || row>=sz)
+	{
 		row = abs(sz -abs(row));
 	}
-	if(col<0 || col>=sz){
+	if(col<0 || col>=sz)
+	{
 		col = abs(sz -abs(col));
 	}
 	return row* sz + col;
 }
 
-int lattice::total_magnetisation(){
+int lattice::total_magnetisation()
+{
 	int sum=0;
 	#pragma omp parallel for reduction(+:sum)
-	for (int i=0; i< size*size; i++ ){
+	for (int i=0; i< size*size; i++ )
+	{
 		sum+= spin->at(i);
 	}
 	return sum;

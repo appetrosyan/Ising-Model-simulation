@@ -7,7 +7,7 @@
 
 using namespace std;
 
-double t=1., j=1., H=.0;
+double t=1.0, j=1.0, H=0.0;
 int n=20, d=50, print_int=1,  opt;
 const char* filename=NULL;
 
@@ -59,10 +59,12 @@ int main(int argc, char **argv)
 {
 	FILE* fp = stdout;
 	parse_input_args(argc, argv);
-	if (filename != NULL){
+	if (filename != NULL)
+	{
 		fp = fopen(filename, "w");
 	}
 	simulation s = simulation (n, t, j, H);
+	cout<<print_int;
 	s.print_interval=print_int;
 	s.advance(d, fp);
 	fclose(fp);
