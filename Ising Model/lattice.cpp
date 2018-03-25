@@ -1,121 +1,87 @@
-#include <iostream>
 #include "include/lattice.h"
-#include <vector>
+#include <iostream>
 #include <new>
+#include <vector>
 using namespace std;
 
 int inline to_periodic(int, int, int);
 
-lattice::lattice(int new_size, double new_J, double new_H) noexcept:
-size(new_size),
-spin(new vector <short> (size*size, 1)),
-J(new_J),
-H(new_H)
-{}
+lattice::lattice(int new_size, double new_J, double new_H) noexcept
+    : size(new_size), spin(new vector<short>(size * size, 1)), J(new_J),
+      H(new_H) {}
 
-lattice::lattice(const lattice& old) noexcept
-{
-	size = old.size;
-	spin = new vector<short> (size*size, 1);
-	#pragma omp for
-	for(int i=0; i<size*size; i++)
-	{
-			this->spin->at(i) = old.spin->at(i);
-	}
-	J = old.J;
-	H = old.H;
+lattice::lattice(const lattice &old) noexcept {
+  size = old.size;
+  spin = new vector<short>(size * size, 1);
+#pragma omp parallel for
+  for (int i = 0; i < size * size; i++) {
+    this->spin->at(i) = old.spin->at(i);
+  }
+  J = old.J;
+  H = old.H;
 }
 
-lattice& lattice::operator= (const lattice& other)
-{
-	size = other.size;
-	delete spin;
-	spin = other.spin;
-	J = other.J;
-	H = other.H;
-	return * this;
+lattice &lattice::operator=(const lattice &other) {
+  size = other.size;
+  delete spin;
+  spin = other.spin;
+  J = other.J;
+  H = other.H;
+  return *this;
 }
 
-lattice::lattice() noexcept:
-size(0),
-spin(NULL),
-J(0),
-H(0)
-{}
+lattice::lattice() noexcept : size(0), spin(NULL), J(0), H(0) {}
 
-lattice::~lattice()
-{
-	delete spin;
+lattice::~lattice() { delete spin; }
+
+char inline symbol(int in) { return in == -1 ? '-' : '*'; }
+
+void lattice::print() {
+  int area = size * size;
+  for (int i = 0; i < area; i++) {
+    cout << symbol(spin->at(i)) << ' ';
+    if (i % size == size - 1)
+      cout << endl;
+  }
+  cout << endl;
 }
 
-char inline symbol(int in)
-{
-	return in==-1?'-':'*';
+short lattice::get(int row, int col) {
+  return spin->at(to_periodic(row, col, size));
 }
 
-void lattice::print()
-{
-	int area = size*size;
-	for(int i=0; i< area; i++)
-	{
-		cout<<symbol(spin->at(i))<<' ';
-		if (i%size ==size-1 ) cout<<endl;
-	}
-	cout<<endl;
+void lattice::flip(int row, int col) {
+  spin->at(to_periodic(row, col, size)) *= -1;
 }
 
+int lattice::get_size() { return size; }
 
-short lattice::get(int row, int col)
-{
-	return spin->at(to_periodic(row, col, size));
+double lattice::compute_point_energy(int row, int col) {
+  int accumulator = get(row + 1, col) + get(row - 1, col) + get(row, col - 1) +
+                    get(row, col + 1);
+  return -get(row, col) * (accumulator * J + H);
 }
 
-void lattice::flip(int row, int col)
-{
-	spin->at(to_periodic(row, col, size)) *=-1;
+int inline abs(int in) { return in > 0 ? in : -in; }
+
+int inline to_periodic(int row, int col, int sz) {
+  if (row < 0 || row >= sz) {
+    row = abs(sz - abs(row));
+  }
+  if (col < 0 || col >= sz) {
+    col = abs(sz - abs(col));
+  }
+  return row * sz + col;
 }
 
-
-int lattice::get_size()
-{
-	return size;
+int lattice::total_magnetisation() {
+  int sum = 0;
+#pragma omp parallel for reduction(+ : sum)
+  for (int i = 0; i < size * size; i++) {
+    sum += spin->at(i);
+  }
+  return sum;
 }
-
-double lattice::compute_point_energy(int row, int col)
-{
-	int accumulator = get(row+1, col) + get(row-1, col) +
-					  get(row, col-1) + get(row, col+1);
-	return -get(row, col)*(accumulator*J + H );
-}
-
-int inline abs(int in){
-	return in>0? in:-in;
-}
-
-int inline to_periodic(int row, int col, int sz)
-{
-	if(row<0 || row>=sz)
-	{
-		row = abs(sz -abs(row));
-	}
-	if(col<0 || col>=sz)
-	{
-		col = abs(sz -abs(col));
-	}
-	return row* sz + col;
-}
-
-int lattice::total_magnetisation()
-{
-	int sum=0;
-	#pragma omp parallel for reduction(+:sum)
-	for (int i=0; i< size*size; i++ )
-	{
-		sum+= spin->at(i);
-	}
-	return sum;
-}
-
 
 // int main() {
 // 	int len = 5;
