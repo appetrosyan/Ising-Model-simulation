@@ -5,31 +5,31 @@
 #include "rng.h"
 #include <gsl/gsl_rng.h>
 
-class simulation
-{
+class simulation {
 private:
-		int time=0;
-		rng r = rng();
-		lattice spins;
-		double temperature;
-		double mean_magnetisation=1;
-		double mean_energy;
-		double total_magnetisation;
-		double total_energy;
-public:
+  int time_ = 0;
+  rng r_ = rng();
+  lattice spin_lattice_;
+  double temperature_;
+  double mean_magnetisation_ = 1;
+  double mean_energy_;
+  double total_magnetisation_;
+  double total_energy_;
 
-		int print_interval=1;
-		simulation(int size, double temp, double J, double H);
-		simulation(const simulation& other);
-		simulation& operator= (const simulation& other);
-		~simulation(){}
-		void advance();
-		// void inline visit(int, int);
-		void inline print_status(FILE* fp);
-		void advance(int time_steps, FILE* output);
-		double compute_energy(lattice & other);
-		double compute_dE(int row, int col);
-		// double point_energy_with_neightbours(int row, int col);
+public:
+  int print_interval_ = 1;
+  simulation(int new_size, double new_temp, double new_J, double new_H)
+      : time_(0), spin_lattice_(lattice(new_size, new_J, new_H)), temperature_(new_temp),
+        mean_energy_(new_J * (-4)), total_magnetisation_(new_size * new_size),
+        total_energy_(compute_energy(spin_lattice_)) {}
+  void advance();
+  void inline print_status(FILE *f) {
+    fprintf(f, "%4d\t%.9f \t%.9f\t%.9f\n", time_, mean_magnetisation_,
+            mean_energy_, temperature_);
+  }
+  void advance(int time_steps, FILE *output);
+  double compute_energy(lattice &other);
+  double compute_dE(int row, int col);
 };
 
-#endif /* simulation_h */
+#endif
