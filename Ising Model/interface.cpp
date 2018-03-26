@@ -1,8 +1,8 @@
 #include <ctype.h>
 #include <getopt.h>
-#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
 #include "include/simulation.h"
 
 using namespace std;
@@ -12,7 +12,6 @@ int n = 20, d = 50, print_interval = 1, opt;
 const char *filename = NULL;
 
 void parse_input_args(int argc, char **argv) {
-  // cout<<"parsing input args";
   while ((opt = getopt(argc, argv, "t:j:H:n:d:f:p:")) != EOF) {
     switch (opt) {
     case 't':
@@ -47,7 +46,7 @@ void parse_input_args(int argc, char **argv) {
 	-n : side of square lattice");
       break;
     default:
-      cout << endl;
+      fprintf(stdout, "\n");
       return;
     }
   }
@@ -60,8 +59,7 @@ int main(int argc, char **argv) {
     fp = fopen(filename, "w");
   }
   simulation s = simulation(n, t, j, H);
-  cout << print_interval;
-  s.print_interval_ = print_interval;
+  s.set_print_interval(print_interval);
   s.advance(d, fp);
   fclose(fp);
   return 0;
