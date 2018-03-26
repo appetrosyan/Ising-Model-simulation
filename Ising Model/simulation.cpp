@@ -21,9 +21,16 @@ void simulation::advance(unsigned int time_steps, FILE *output) {
       print_status(output);
       total_magnetisation_ = spin_lattice_.total_magnetisation();
       mean_magnetisation_ = total_magnetisation_ / area;
-      total_energy_ = compute_energy(spin_lattice_);
-      mean_energy_ = total_energy_ / area;
     }
+    // If we don't update mean_energy_ every time, we might get incorrect
+    // thermodynamic behaviour.
+    total_energy_ = compute_energy(spin_lattice_);
+    long double temperature_delta = total_energy_/area - mean_energy_;
+    if (abs(temperature_delta) < 1/area){
+      cerr<<temperature_delta<<"Reached equilibrium"<<endl;
+    }
+    temperature_ += temperature_delta;
+    mean_energy_ = total_energy_ / area;
     advance();
   }
 }
@@ -41,8 +48,8 @@ void simulation::advance() {
       double p = r_.random_uniform();
       if (exp(-dE / temperature_) > p) {
         // Not thread safe. see comment in compute_energy(lattice& )
-        // total_energy+=dE;
-        // total_magnetisation-=2*spin_lattice_.get(row, col);
+        // total_energy_+=dE;
+        // total_magnetisation_-=2*spin_lattice_.get(row, col);
         spin_lattice_.flip(row, col);
       }
     }

@@ -4,7 +4,7 @@
 using namespace std;
 
 /*
-Copy assignment operator, too long to include in the header. 
+Copy assignment operator, too long to include in the header.
 */
 lattice &lattice::operator=(const lattice &other) {
   size_ = other.size_;
