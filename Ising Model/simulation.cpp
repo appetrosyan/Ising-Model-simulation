@@ -27,7 +27,7 @@ void simulation::advance(unsigned int time_steps, FILE *output) {
     total_energy_ = compute_energy(spin_lattice_);
     long double temperature_delta = total_energy_/area - mean_energy_;
     if (abs(temperature_delta) < 1/area){
-      cerr<<temperature_delta<<"Reached equilibrium"<<endl;
+      cerr<<temperature_delta<<"! Reached equilibrium "<<endl;
     }
     temperature_ += temperature_delta;
     mean_energy_ = total_energy_ / area;

@@ -61,6 +61,6 @@ int main(int argc, char **argv) {
   simulation s = simulation(n, t, j, H);
   s.set_print_interval(print_interval);
   s.advance(d, fp);
-  fclose(fp);
+  fclose(fp);			// Ugly housekeeping, but what can you do
   return 0;
 }
