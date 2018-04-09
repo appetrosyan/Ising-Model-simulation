@@ -19,7 +19,6 @@ lattice.o: lattice.cpp
 clean:
 	rm -f *.o
 	rm -f ${INC}/*.gch
-	rm -f main
 	rm -f data/*
 
 data.d:

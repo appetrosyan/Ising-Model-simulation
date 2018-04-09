@@ -1,0 +1,225 @@
+% Created 2018-04-04 Wed 18:50
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{listings}
+\author{Aleksandr Petrosyan}
+\date{\today}
+\title{Ising model of magnetism}
+\hypersetup{
+ pdfauthor={Aleksandr Petrosyan},
+ pdftitle={Ising model of magnetism},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 25.1.1 (Org mode 9.1.7)}, 
+ pdflang={English}}
+
+
+\begin{document}
+
+\maketitle
+
+
+\begin{abstract}
+The Ising model of magnetism was investigated using numerical simulation. The theoretical prediction that a so-called critical temperature is \(T_C = \frac{2}{\ln(2 + \sqrt{2})}\),  was shown to be consitent with simulations. 
+
+TODO
+\end{abstract}
+
+
+\section{Introduction}\label{sec:intro}
+The Ising model is an effective mean field theory of magnetism in solids. In its simplest form, i.e.~neglecting all but nearest-neighbour interactions, it had been solved analytically by Onsager. In the following sections we will attempt to compare the theoretical predictions with data obtained from the simulations. 
+
+A brief explanation of the algorithm used for simulation will be given in the following section, after which we will discuss a the particular cases which have been investigated. 
+
+The entire working code is attached in the appendix, details of the current implementation will be discussed in Section~\ref{sec:implementation}. 
+
+\section{Algorithm}\label{sec:algorithm}
+
+For now we shall restrict ourselves to two-dimensional square lattices of size \(N \times N\). Each lattice site has an associated spin \(S_{(i, j)}\). Nearest neighbours\footnote{From now onwards we shall ignore all other possible next-nearest neighbour interactions} (i.e.~the four\footnote{in \(D\) dimensions it would be \(2 \cdot D\) spins} closest spins in the lattice) have an associated pair-interaction energy \(J \in \mathbb{R}\), also referred to as \emph{exchange energy}. Additionally the entire lattice can be subjected to an external magnetic field \(H\). For our purposes \(H\) should be considered spatially uniform, i.e.~the same across all lattice sites. 
+
+In this arrangement a spin \( S_{(i, j)}\) shall have an associated \emph{point-energy}
+
+\begin{equation}\label{eq:point_energy}
+  E_{(i, j)} = S_{(i, j)} \cdot \left[ -J  \sum_{m, n}^{\text{nearest neighbours}} S_{(m,n)} - JH \right] 
+\end{equation}
+
+and summing over all \(N \times N\) pairs of lattice points yields us the total energy associated with the lattice.
+
+One can show that this system shall (given \(J \geq 0\)) tend to a state where all spins are aligned with each-other and the external field. If the system has a finite temperature \(T>0\) then there will be a competing thermal process that seeks the state with maximum entropy.
+
+We can simulate both processes by means of a simple \emph{Metropolis} algorithm. The full pseudo-code is given here.
+
+\begin{algorithm}
+  \caption{Sweep}\label{euclid}
+\begin{algorithmic}[1]
+  \Procedure{sweep(\emph{lattice} l)}{}
+  \For{} \( (i, j) \in L \)
+  \State{\(\Delta E_{(i, j)} \gets (L.flip(i, j)).E_{\textit{total}} - L.E_{\textit{total}} \)}
+  \State{\( r \gets\textit{random uniform}(0, 1)\)}
+  \If{\( \Delta E_{(i, j)} \leq 0 \lor \exp \left[ - \frac{\Delta E_{(i, j)} }{ k_B T} \right] > r\)}
+  \State{\( L := L.flip(i, j)\)}
+  \EndIf
+  \EndFor
+  \EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+In other words, for each lattice site (i, j), compute the energy needed to flip one spin. If by flipping that spin energy can be released (\(\Delta E < 0\)), flip it. If \(\exp \left[ - \frac{\Delta E }{ k_B T} \right] \) is greater than a probability \(r \) drawn from a uniform-distribution, flip the spin.
+
+That last step emulates the thermodynamics of the system. We anticipate that at time \( t \gg 1\)  the system will obey Boltzmann statistics, which we can ensure by doing random flips with a Boltzmann-like probability.
+
+One can also show using simple algebra, that \(\Delta E_{(i, j)} = -2 E_{(i, j)}\).
+
+\section{Method}\label{sec:simulation_data}
+
+\subsection{Time evolution}\label{sec:time_evolution}
+
+Given a totally ordered initial state the simulation evolves with time in two ways:
+
+\begin{enumerate}
+\item System remains ordered. True for sub-critical temperatures. Here any fluctuation about a completely ordered state is quickly suppressed by spin-spin interactions.
+\item System decays to a disordered state. This occurs for super-critical temperatures. Here fluctuations are being suppressed by random spin flipping. 
+\end{enumerate}
+
+If the system starts from a different configuration, e.g.~a chequerboard pattern, we could have very different behaviour. The spins form what are known as \emph{domains}, and depending on the temperature can grow or shrink. In some cases, given sub-critical temperature, the system may lose some but not all of its domains, resulting in mean magnetisation that's different to \(0\) or \(1\).
+
+This phenomenon accounts for the slight difference between \emph{remanent magnetisation}\footnote{magnetisation present in a sample of a magnetically susceptible material, after a field was applied to it and switched off. } of the sample, and magnetisation when the external field was removed.
+
+Interestingly the larger domains are less susceptible to this type of behaviour.
+
+(TODO)
+
+One can also notice that for temperatures approaching a critical temperature, the process of reaching equilibrium takes more Monte-Carlo steps. This is known as the \emph{critical slowdown}, and owes to the fact that the two driving forces: thermal and spin-spin interactions are comparable near critical temperature, hence the net driving force is near-zero. 
+
+\subsection{Critical transitions}
+
+As expected, the simulation did exhibit a critical transition. Namely mean magnetisation underwent a step-like transition from a totally ordered state to a totally disordered one. Of course, due to critical slowdown, we should expect for the transition to be smoothed out.
+
+Mean energy, would also undergo a transition from a low negative value (order), to a high negative value (relative disorder). This transition, however is much more affected by the aforementioned smoothing. Indeed, it's extremely difficult to distinguish between the serrations and the transition. 
+
+These two can, hypothetically,  be used to determine the critical transition temperature, however, because of the inherent unpredictability of each simulation, even when run over a very long time, we can expect serrations of both magnetisation and energy which will negatively impact any attempt of fitting a step function. Thus the plots (TODO) serve illustration purposes only.
+
+Of course, if the simulation is to be re-run several times, to decrease the probability of random fluctuations imprinting on the terminal magnetisation/energy, the problem can be mitigated. Indeed, if we run for a shorter time, but average over several runs of the simulation, the effect of random fluctuations on the final value is reduced, which allows us to smooth out some of these serrations. 
+
+Note also that larger lattices are less affected by the critical slowdown. This again stems from reducing the effects of random fluctuations. 
+
+\subsection{Auto-correlation}
+
+\subsection{Heat capacity }\label{sec:heat_capacity}
+
+The \emph{fluctuation-dissipation} theorem states that
+
+\begin{equation}\label{eq:fluctuation-dissipation theorem}
+  C_v = \frac{\sigma_E^2}{ {(k_B T)}^2}
+\end{equation}
+
+Where \( \sigma_E = \sqrt{\langle  {(E - \langle E \rangle)}^2 \rangle}\), i.e~the standard deviation of the mean energy per unit area. This heat capacity, reaches a maximum when nearing the critical temperature, due to the critical slowdown i.e.~because the system is less able to suppress fluctuations.
+
+We can then attempt a six-parameter non-linear fit to the heat capacity, to recover the critical temperature. If the fitting function is a Lorentzian,
+
+\begin{equation}\label{eq:Lorentzian}
+  f(t) = c + \frac{b}{{(t - a)}^2 + d}
+\end{equation}
+
+the offset parameter \(a\) in (\ref{eq:Lorentzian}) will be our best estimate of critical temperature. 
+
+This complicates obtaining data near the critical temperature. If we don't let the system run long-enough it will not reach equilibrium. If it, taking the standard deviation is more likely to show a step, rather than a resonance profile, as then the mean (with respect to which the standard deviation is taken) will be a non-equilibrium value. Thus every point near equilibrium will contribute a large deviation.
+
+As in the previous case, the serrations can be reduced by averaging over multiple runs. This averaging also gives us a sense of the variance of the data, and allows us to fine tune the non-linear fit to account for uncertainties in the heat capacity.
+
+\subsection{Finite size scaling}\label{sec:scaling}
+
+In the limit of an infinite lattice, Onsager has shown that a system will have a critical transition at temperature. 
+
+\begin{equation}\label{eq:onsager}
+  T_C (\infty)= \frac{2}{\ln(2 + \sqrt{2})}
+\end{equation}
+
+Which we expect will scale with the lattice size according to
+
+\begin{equation}\label{eq:scaling}
+  T_c(N) = T_C(\infty) + a N ^{-1/\nu}
+\end{equation}
+
+where \(a\) and \(\nu\) are fitting parameters, alongside \(T_c(\infty)\). Since (\ref{eq:scaling}) has three degrees of freedom, we shall perform a non-linear fit.
+
+\subsection{External field coupling}\label{sec:chi}
+
+We also expect there to be a critical transition in magnetic susceptibility: \(\chi \), which characterises the ensemble's response to an external field \(H\).
+
+\section{Results}
+
+(TODO)
+
+  
+
+\section{Discussion}\label{sec:discussion}
+
+\subsection{Agreement with theory}\label{sec:agreement}
+
+As seen in figure (TODO), the time evolution happens exactly as described in section~\ref{sec:time_evolution}.
+
+The critical transitions do indeed occur, and produce a step-down in absolute value of magnetisation (per unit area).
+
+The transitions in heat capacity appear as expected and satisfy the scaling relation (\ref{eq:scaling}). (TODO)
+
+
+
+\subsection{Implementation}\label{sec:implementation}
+
+For this particular project it was elected to separate the program into two pieces: a high performance simulation written in c++, as well as a python script that analyses the data generated by the compiled program. The two communicate either through temporary files in the \texttt{data/} directory, or directly via a \texttt{Unix pipe}. The former has the advantage of allowing data reuse, while the latter can be used for benchmarking.
+
+
+\subsubsection{C++ program}
+
+This program, when given the optional arguments \texttt{-j}, \texttt{-H}, \texttt{-n} and \texttt{-t}\(J\), \(H\), \(N\) and \(T\) produces and simulates a lattice of size \(N \times N\) and writes statistics about the simulation either to a file (if given an \texttt{-f filename.csv} optional argument) or directly to stdout, to be piped to another program. This program runs the simulations either for 500 Monte-Carlo steps, or optionally, to the number specified by \texttt{-d duration} option. 
+
+The C++ code was optimised for speed.
+
+The program only computes statistics data (e.g.~mean magnetisation) when it prints. This reduces the performance penalty associated with running the simulation for a large number of Monte-Carlo steps.
+
+Effort was put into making the simulation multi-threaded, which yields an almost perfect scaling: the run-time is reduced by a factor of the number of physical CPU cores in the target machine.
+
+Since the list of possible values of \(\Delta E\) is restricted, a technique called memoization can be used to further improve performance. 
+
+Additionally aggressive speed-optimisation compiler flags (\texttt{-O3}) could produce a further performance increase, if the supplied \texttt{makefile} is used. 
+
+\subsubsection{Python script}
+
+This script performs all the data analysis in this project. By default this program will attempt to load simulation data from other runs, however it can be instructed to perform all data manipulations in memory by specifying the \texttt{-r} option.
+
+This program follows the suggested investigations by providing an investigator function for each. These functions only have keyword arguments, hence can be simply called sequentially. If one so chooses, however, other parameters can be specified.
+
+Notable optimisations:
+\begin{itemize}
+\item \texttt{investigate_time_dependence()} adjusts simulation duration depending on lattice size, initial_temperature's proximity to the theoretical critical value. This conserves computation time for simulations that are unlikely to be affected by the critical slowdown. To first order the time to reach equilibrium can be thought of as \emph{Lorentzian}\footnote{A Lornetzian is the frequency-response function of a damped harmonic oscillator, with a sinusoidal driving force. } of temperature, which was used to taper the duration.
+\item \texttt{investigate_heat_capacity()} uses a non-linear fit with restricted values. These restrictions are common sense, guide the algorithm significantly during the fit.
+  
+\end{itemize}
+
+Overall the implementations are self-documenting, and particular decisions are outlined in the source code's comments. 
+
+\section{Conclusions}\label{sec:conclusions}
+
+\section{Appendices}\label{sec:appendices}
+
+
+\section{References}\label{sec:references}
+
+\tableofcontents
+\end{document}
