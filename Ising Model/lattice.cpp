@@ -32,8 +32,11 @@ It is explicitly float as that would allow the compiler to make use of multiple
 registers instead of keeping track of unneeded precision.  (typically J, H ~ 1).
 */
 float lattice::compute_point_energy(int row, int col) {
-  int accumulator = get(row + 1, col) + get(row - 1, col) + get(row, col - 1) +
-                    get(row, col + 1);
+  short top = get(row? row-1: size_-1, col);
+  short bottom = get((row+1)%size_, col);
+  short left = get(row, col? col-1: size_-1);
+  short right = get(row, (col+1)%size_) ;
+  int accumulator = top + bottom +left +right;
   return -get(row, col) * (accumulator * J_ + H_);
 }
 
@@ -42,24 +45,9 @@ Computes total magnetisation in O(n^2). Thread safe
 */
 int lattice::total_magnetisation() {
   int sum = 0;
-  #pragma omp parallel for reduction(+ : sum)
+  // #pragma omp target teams distribute parallel for reduction(+ : sum)
   for (unsigned int i = 0; i < size_ * size_; i++) {
     sum += spins_->at(i);
   }
   return sum;
 }
-
-// int main() {
-// 	int len = 5;
-// 	lattice k = lattice (len, 1.0, 0.0);
-// 	// for(int i =0; i<len; i++){
-// 	// 	k.flip(i,i);
-// 	// }
-// 	k.flip(len/2, len/2);
-// 	k.flip(1,6);
-// 	cout<<k.compute_point_energy(0,0)<<endl;
-// 	cout<<k.compute_point_energy(1,1)<<endl;
-// 	k.print();
-//
-// 	return 0;
-// }
