@@ -1,14 +1,15 @@
 import multiprocessing
 from os import mkdir
 from subprocess import run, PIPE
-from numpy import loadtxt, log, sqrt, mean, std, zeros, sum as np_sum
+from numpy import loadtxt, log, sqrt, mean, std, zeros, sum as np_sum, nonzero, ravel, logical_and
 from os.path import exists
 import matplotlib.pyplot as plt
 
-use_disk = False
+USE_DISK = False
 breadth = 1
 base_duration = .75
 t_c = 2/log(1 + sqrt(2))
+silent=True
 
 
 
@@ -69,7 +70,7 @@ class Simulation:
         self.duration = duration
         if not dry_run:
             file_path = 'data/' + str(self) + '.csv'
-            if use_disk:
+            if USE_DISK:
                 self.data = self.load_from_disk(file_path)
             else:
                 self.data = self.run()
@@ -77,7 +78,7 @@ class Simulation:
     def times(self):
         return self.data[:, 0]
 
-    def mean_magnetizations(self):
+    def magnetizations(self):
         return self.data[:, 1]
 
     def mean_energies(self):
@@ -114,7 +115,7 @@ class Simulation:
         if self.duration > 50000:
             command.append('-p')
             command.append(str(int(self.duration/50000)))
-        if use_disk:
+        if USE_DISK:
             command.append('-f')
             command.append(file_path)
             run(command)
@@ -127,26 +128,28 @@ class Simulation:
 
 def save_plot(title, legend_loc='best'):
     plt.legend(loc=legend_loc)
-    plt.suptitle(title)
+    # plt.suptitle(title)
     file_name = title.replace(' ', '_')
     if not exists('figures/'):
         mkdir('figures/')
-    plt.savefig('figures/%s.png'%file_name)
-    plt.show()
+    plt.savefig('figures/%s.eps'%file_name)
+    if not silent:
+        plt.show()
+    plt.figure()
 
 
 def smart_duration(temperature, multiplier=1.):
     """
-    A function to scale the simulation runtime baased on distance to
+    A function to scale the simulation runtime based on distance to
     critical temperature.
     """
     return int(((10**5)*base_duration*multiplier)/(
-            (temperature - t_c)**2 + breadth))
+            (temperature - 2.4)**2 + breadth))
 
 def pretty_pm(data, i):
-    """Helper to format latex"""
+    """Helper function to format latex. """
     args, cov = data
-    return '(' + '{:01.1f}'.format(args[i]) + r'\pm' + '{:01.1f}'.format(
+    return '(' + '{:01.2f}'.format(args[i]) + r'\pm' + '{:01.2f}'.format(
         sqrt(cov[i, i])) + ')'
 
 
@@ -154,6 +157,7 @@ def multi_run(sim: Simulation, re_runs: int = 2, take_last: int = 300,
               multiplier: float = 1.0):
     """
     Run a given simulation multiple times.
+
     Parameters:
     -----------
 
@@ -167,17 +171,15 @@ def multi_run(sim: Simulation, re_runs: int = 2, take_last: int = 300,
     Returns:
     List:
     """
-    global use_disk
-    use_disk = False
     sim.duration = smart_duration(sim.temperature, multiplier=multiplier)
     magnetizations = []
     sigma_magnetizations = []
     energies = []
     sigma_energies = []
-    for i in range(re_runs):
+    for _ in range(re_runs):
         sim.data = sim.run()
         sim.duration -= take_last
-        last_magnetizations = sim.mean_magnetizations()[-take_last:]
+        last_magnetizations = sim.magnetizations()[-take_last:]
         magnetizations.append(abs(mean(last_magnetizations)))
         sigma_magnetizations.append(std(last_magnetizations))
         last_energies = sim.mean_energies()[-take_last:]
@@ -187,11 +189,10 @@ def multi_run(sim: Simulation, re_runs: int = 2, take_last: int = 300,
             mean(energies), mean(sigma_energies),
             std(sigma_energies)/mean(sigma_energies)]
 
+
 def auto_cov(x_i, t):
     """
-    for series of values x_i, length length, compute empirical auto-cov with
-    lag t defined: 1/(length-1) * \sum_{i=0}^{length-t} ( x_i - x_m ) *
-    ( x_{i+t} - x_m )
+    Compute empirical autocovariance. 
     """
     length = len(x_i)
     # use sample mean estimate from whole series
@@ -203,3 +204,24 @@ def auto_cov(x_i, t):
     start_padded_series = zeros(length + t)
     start_padded_series[t:] = x_i - x_m
     return 1./(length - 1)*np_sum(start_padded_series*end_padded_series)
+
+def find_root(xdata, ydata, offset):
+    """
+    Parameters:
+    -----------
+    xdata: iterable
+    ydata: iterable
+  
+    Returns: 
+    --------
+    x_0 value of the most likely root. 
+    """
+    # 
+    crossing_indices, = nonzero(ravel(logical_and(ydata[1:] <= offset,
+                                           ydata[:-1] > offset)))
+    index = crossing_indices[0]
+    # Linear interpolation 
+    x_0, y_0 = xdata[index], ydata[index]
+    x_f, y_f = xdata[index+1], ydata[index+1]
+    d_x, d_y = x_0 - x_f, y_0 - y_f 
+    return x_0 - (y_0 - offset)/d_y * d_x

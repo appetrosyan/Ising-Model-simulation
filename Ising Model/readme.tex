@@ -1,6 +1,11 @@
 % Created 2018-04-04 Wed 18:50
 % Intended LaTeX compiler: pdflatex
-\documentclass[11pt]{article}
+
+% from magnetisation (2.267698844646922, 0.005287185831688951)
+% from heat capacity (0.2666120485706654, 0.35873537770319175)
+% from susceptibility [2.6923076923076925, 2.6153846153846154,  2.6153846153846154, 2.6153846153846154]
+\documentclass[12pt]{article}
+\usepackage[margin=1.1in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
@@ -17,40 +22,53 @@
 \usepackage{capt-of}
 \usepackage{hyperref}
 \usepackage{listings}
-\author{Aleksandr Petrosyan}
+\usepackage{minted}
+\usepackage{subcaption}
+\usepackage{wrapfig}
+\usepackage{booktabs}
 \date{\today}
-\title{Ising model of magnetism}
+\title{Metropolis-Hastings simulation of the Ising model}
 \hypersetup{
- pdfauthor={Aleksandr Petrosyan},
- pdftitle={Ising model of magnetism},
- pdfkeywords={},
- pdfsubject={},
- pdfcreator={Emacs 25.1.1 (Org mode 9.1.7)}, 
- pdflang={English}}
+ % pdfauthor={Aleksandr Petrosyan},
+  pdftitle={Ising model of Magnetism},
+  pdfsubject={Physcis},
+  pdfcreator={Emacs 25.1.1 (Org mode 9.1.7)}, 
+  pdflang={English}
+}
 
 
 \begin{document}
-
 \maketitle
 
 
 \begin{abstract}
-The Ising model of magnetism was investigated using numerical simulation. The theoretical prediction that a so-called critical temperature is \(T_C = \frac{2}{\ln(2 + \sqrt{2})}\),  was shown to be consitent with simulations. 
-
-TODO
+  The Ising model of magnetism was analyzed using the Metropolis algorithm. Critical transitions in heat capacity, magnetisation, magnetic susceptibility and autocorrelation were observed at various critical temperatures \(T_C\), and their scaling with the lattice size was investigated using magnetisation and specific heat. The hypothesis that  \(T_c(N) = T_C(\infty) + a N ^{-1/\nu}\), where \(T_C (\inf) = \frac{2}{\ln(1 + \sqrt{2})} \approx 2.269\) and \(\nu\) is the appropriate critical exponent, was investigated and shown to be consistent with measurements. Effects of external magnetic field were considered,  and a change in critical behaviour was observed
 \end{abstract}
 
 
 \section{Introduction}\label{sec:intro}
-The Ising model is an effective mean field theory of magnetism in solids. In its simplest form, i.e.~neglecting all but nearest-neighbour interactions, it had been solved analytically by Onsager. In the following sections we will attempt to compare the theoretical predictions with data obtained from the simulations. 
 
-A brief explanation of the algorithm used for simulation will be given in the following section, after which we will discuss a the particular cases which have been investigated. 
+The Ising model\cite{Ising1925} is a microscopic model of magnetic materials. It consists of an N-dimensional lattice, with periodic topology, and often hyper-cubic distribution of molecular magnetic moments. For our analysis, we shall only consider a two-dimensional Ising model, with equal coupling between nearest neighbours (Four in total), and ignoring all other interactions. Furthermore, we shall restrict the molecular magnetic moments (also referred to as spins) to only two states -- \emph{up} and \emph{down}.
 
-The entire working code is attached in the appendix, details of the current implementation will be discussed in Section~\ref{sec:implementation}. 
+This model had been solved Analytically by Lars Onsager in 1944\cite{Onsager, histIsing}, for a special case, of no external magnetic field. We shall be comparing the results of our simulation to Onsager's analytical predictions.
+
+A brief explanation of the algorithm used for the simulation will be given in the following section, after which we shall discuss the particular investigations carried out, and discuss the results.
+
+Our investigation consists of three parts.
+
+\begin{itemize}
+\item Initial run. We look at time evolution and some low-level phenomenology, to sanity check the simulation. We then analyse autocorrelation, to find out how much time the system needs to equilibrate.
+\item Critical temperature analysis. Here we analyze critical transitions in energy, magnetisation, and heat capacity, and investigate finite-size scaling (more on that later).
+\item External field analysis. Here we analyse the system's magnetic susceptibility (dynamic and otherwise), and analyse the critical phenomena's scaling on \(H \ne 0\). 
+\end{itemize}
+
+The entire working code is attached in the appendix, details of the current implementation -- discussed in Section~\ref{sec:implementation}.
 
 \section{Algorithm}\label{sec:algorithm}
 
-For now we shall restrict ourselves to two-dimensional square lattices of size \(N \times N\). Each lattice site has an associated spin \(S_{(i, j)}\). Nearest neighbours\footnote{From now onwards we shall ignore all other possible next-nearest neighbour interactions} (i.e.~the four\footnote{in \(D\) dimensions it would be \(2 \cdot D\) spins} closest spins in the lattice) have an associated pair-interaction energy \(J \in \mathbb{R}\), also referred to as \emph{exchange energy}. Additionally the entire lattice can be subjected to an external magnetic field \(H\). For our purposes \(H\) should be considered spatially uniform, i.e.~the same across all lattice sites. 
+We shall restrict ourselves to square lattices of size \(N \times N\). Each lattice site has an associated spin \(S_{(i, j)}\). Nearest neighbours\footnote{From here onwards we shall ignore all other possible next-nearest neighbour interactions} (i.e.~the four\footnote{in \(D\) dimensions it would be \(2 \times D\) spins} closest spins in the lattice) have an associated pair-interaction energy \(J \in \mathbb{R}\), also referred to as \emph{exchange energy}. Throughout our analysis we shall set \( J =1\), which corresponds to \emph{ferromagnetic} materials.
+
+Additionally the entire lattice can be subjected to an external magnetic field \(H\) which we assume is spatially uniform, i.e.~the same across all lattice sites. 
 
 In this arrangement a spin \( S_{(i, j)}\) shall have an associated \emph{point-energy}
 
@@ -62,13 +80,13 @@ and summing over all \(N \times N\) pairs of lattice points yields us the total 
 
 One can show that this system shall (given \(J \geq 0\)) tend to a state where all spins are aligned with each-other and the external field. If the system has a finite temperature \(T>0\) then there will be a competing thermal process that seeks the state with maximum entropy.
 
-We can simulate both processes by means of a simple \emph{Metropolis} algorithm. The full pseudo-code is given here.
+We can simulate both processes by means of a simple \emph{Metropolis-Hastings} algorithm:\cite{Hastings1970}
 
 \begin{algorithm}
   \caption{Sweep}\label{euclid}
 \begin{algorithmic}[1]
   \Procedure{sweep(\emph{lattice} l)}{}
-  \For{} \( (i, j) \in L \)
+  \For{\( (i, j) \in L \)}
   \State{\(\Delta E_{(i, j)} \gets (L.flip(i, j)).E_{\textit{total}} - L.E_{\textit{total}} \)}
   \State{\( r \gets\textit{random uniform}(0, 1)\)}
   \If{\( \Delta E_{(i, j)} \leq 0 \lor \exp \left[ - \frac{\Delta E_{(i, j)} }{ k_B T} \right] > r\)}
@@ -79,147 +97,333 @@ We can simulate both processes by means of a simple \emph{Metropolis} algorithm.
 \end{algorithmic}
 \end{algorithm}
 
-In other words, for each lattice site (i, j), compute the energy needed to flip one spin. If by flipping that spin energy can be released (\(\Delta E < 0\)), flip it. If \(\exp \left[ - \frac{\Delta E }{ k_B T} \right] \) is greater than a probability \(r \) drawn from a uniform-distribution, flip the spin.
+In other words, for each lattice site \( (i, j) \), compute the energy needed to flip one spin. If by flipping that spin energy can be released (\(\Delta E < 0\)), flip it. If the associated Boltzmann factor \(\exp \left[ - \frac{\Delta E }{ k_B T} \right] \) is greater than a (random) probability \(r \) from a uniform-distribution, flip the spin.
 
-That last step emulates the thermodynamics of the system. We anticipate that at time \( t \gg 1\)  the system will obey Boltzmann statistics, which we can ensure by doing random flips with a Boltzmann-like probability.
+The last step emulates the thermodynamics of the system\cite{Algorithm}. We don't know the exact microscopic conditions under which a spin might be put in an energetically unfavourable state, but we anticipate that at time \( t \gg 1\)  the system will obey Boltzmann statistics. Thus to achieve the same statistical effect as real thermal fluctuations would, we can pick any set of microscopic rules that produces the Boltzmann statistics in the long run.
 
 One can also show using simple algebra, that \(\Delta E_{(i, j)} = -2 E_{(i, j)}\).
 
+\subsection{Implementation.}\label{sec:implementation}
+
+I elected to separate the program into two pieces: a high performance simulation written in \texttt{C++}, and a \texttt{python} script that analyses the data. The two can communicate either through temporary files in the \texttt{data/} directory, or directly via a \texttt{Unix pipe}.
+
+Hence, we benefit from both the speed of a compiled program, and python's flexibility. 
+
+\subsubsection{C++ program.}
+
+The binary \texttt{main}, when given the optional arguments \texttt{-j}, \texttt{-H}, \texttt{-n} and \texttt{-t} produces and simulates a lattice of size \(N \times N\), with exchange energy \(J\), etc., and writes statistics data either to a file (if given an \texttt{-f filename.csv} optional argument) or directly to \texttt{stdout}, which can be `piped' to another program, e.g.~the python script. To control the number of Monte-Carlo steps to simulate, specify the \texttt{-d \textit{duration}} argument. 
+
+\subsubsection{Python script.}
+
+This script performs all the data analysis in this project. By default it will communicate with \texttt{main} via a `Unix pipe', which can be changed to output simulation data into the \texttt{data/} directory, by setting \texttt{USE\_DISK = True}, in \texttt{AnalysisTools.py}.
+
+\subsection{Performance.}
+
+\subsubsection{Optimisations.}
+
+The bulk of optimisations in the code are contained in the \texttt{C++} program, and is done by the compiler. Some of these optimisations cannot be efficiently done by hand: the compiler is able to access CPU registers, while C++ code acts more like a guideline: the compiler is free to replace any loop with a single mathematical operation, and any manual optimisation that assumes such behaviour can make the code run slower.
+
+Indeed, upon attempting to replace the call to \( \exp (- \frac{\Delta E} {T} )\) with a lookup table, one may find that the code runs far slower, due to the efficiency of the compilers common subexpression elimination. Another example, the code, runs equally fast, when the division by \(T\) is replaced with the inverse temperature, because the compiler has already done that implicitly.
+
+We can however, guide the compiler to attempt multithreading and \emph{Single-instruction multiple data} (SIMD) optimisations, to speed the code up as much as possible. Even then, the overhead of creating a thread pool for smaller tasks at low level can negatively impact the performance of the program (the data needs to be copied, merged and sometimes this is too inefficient for a small core count). 
+
+In \texttt{python}, the chief optimisation is to avoid expensive interpreter operations: use vectorized numpy functions, convert arrays into lists, etc. Since python is an interpreted language, few automatic optimisations can be done (unless using \texttt{pypy}, which is a compiler). It is useful at this level to make use of multiprocessing. A specialised function \texttt{parmap} was specifically implemented to allow high bandwidth data intechange between different processes, which allows for almost perfect scaling across multiple CPU cores. This renders any attempt at multithreading the C++ program ineffective, as additional overhead from updating the lattice in parallel, is greater than the overhead of multiple instances of\texttt{subprocess.call}. Of course, the Unix pipe does introduce additional overhead, but it is negligible compared to running each individual simulation.
+
+A notable optimisation is equilibrating the system for only as long as it needs to be equilibrated for. In Section~\ref{sec:auto_correlation}, we shall investigate the profile of temporal coherence's scaling with temperature. From there we can predict how much longer does a system need to equilibrate at any given temperature and mimicking this profile, reduce the program's overall run-time. 
+
+\subsubsection{Metrics.}
+
+The performance metrics for my system are given in Table\ref{tab:perf}.
+
+\begin{wraptable}{l}{0.5\textwidth}
+  \caption{Performance metric for the Ising model simulation, runtime of each section of investigations of the functions (measured externally)}\label{tab:perf}
+  \begin{tabular}{l|r}
+    Function & run-time/s \\
+    \hline
+    sanity\_checks() & 3.254\\
+    fss\_magnetisation() & 1135.205\\
+    fss\_specific\_heat() & 839.750\\
+    external\_field() & 215.311
+  \end{tabular}
+\end{wraptable}
+
+The performance of this program highly depends on the CPU core count and architecture.
+
+To account for this, assume that the overhead scales linearly with the performance of a single simulation ran on a single core (which ignores thermal throttling, CPU boost etc.). On my machine (a laptop), the command
+
+\texttt{time ./main -t 2 -f data/data.csv -n 200 -d 1000 -p 100}
+
+runs for roughly \texttt{1.287s}. So if on the target system this evaluates in \texttt{x} seconds, a reasonable estimate of the following runtimes can be achieved by scaling results by \texttt{x/1.287}.
+
+The performance numbers can be further improved if we sacrifice precision and accuracy. 
+
+
+ 
 \section{Method}\label{sec:simulation_data}
 
-\subsection{Time evolution}\label{sec:time_evolution}
+In this section we shall discuss what the program will do, how. 
 
-Given a totally ordered initial state the simulation evolves with time in two ways:
+\subsection{Time evolution.}\label{sec:time_evolution}
+
+Time evolution can be measured directly. Some variety of initial conditions can be attained by considering a chequerboard pattern and setting the lattice at random. 
+
+\subsection{Critical transitions.}
+
+At any temperature there are two competing tendencies in a system. To minimise interaction energy, spins align and \(M\approx1\). Thermal effects on the other hand, will maximise the system's entropy.
+
+Temperature determines which response dominates: at high temperatures, the system tends to a disordered phase \(M\approx 0\), and vice versa. Hence there is a temperature \(T_C\) above which the system will always eventually reach a maximum entropy state, i.e.~the system will transition from an ordered phase to a disordered one. Hence the graph of a long run average of the magnetisation vs.~temperature would be a `step-down,' while for long run average mean-energy would be a `step-up.'
+
+An alternative explanation would combine the two competing responses into the Helmholtz Free energy \(F\). We then simply expect that the transition occurs when \(\Delta F = 0\), where the change \(\Delta F\) is across the infinitesimally small region around \(T_C\).\cite{Schwabl}
+
+Near critical temperature the system takes longer to suppress fluctuations, which is known as the \emph{critical slowdown}\cite{Wolff}. It manifests as noise in both \(M\) and \(\langle  E \rangle\) plots near critical temperature. There are many ways to mitigate this noise: e.g.~the \emph{ Wolff algorithm}\cite{Wolff}. However, since we only need to find \(T_C(N)\), we can run the simulation several times (for a sufficiently long number of time steps), take the mean and the standard error of \(M\) each value of \(T\), and then do a weighted nonlinear fit with step-like function, such as \[  f(T, a, b) = \frac{1}{\exp\left[  \frac{(T-a)}{b} \right] -1 }\]. Of course, while we could also fit Onsager's analytical solution: 
+\begin{equation}\label{eq:analytical_magnetisaion}
+  M = {[1 - \sinh^{-4} ( 2  J/ k_B T)]}^\frac{1}{8}
+\end{equation}
+
+this would not provide us with the critical temperature as easily. 
+\subsection{Auto-correlation.}\label{sec:auto_correlation}
+
+The autocorrelation function for lag time \(\tau \) of magnetisation \(M(t)\) is given by
+
+\begin{equation}
+  a(\tau ) = \frac{\langle  \delta M(t) \delta M(t+ \tau) \rangle_t } {\langle  {(\delta M(t))}^2  \rangle}
+\end{equation}
+
+Where \( \delta M(t) \triangleq M(t) - \langle  M(t) \rangle_t \) and angle brackets denote time averaging over a `long' time. As the name suggests, this quantifies the `memory' of the system. We expect for \(a (\tau)\) to decay exponentially fast, characterised by coherence lifetime \( \tau_e\).
+
+Finding \(\tau_e\) is complicated, since the correlation function fluctuates significantly, rendering any attempt to fit an exponential to the data ineffective, despite averaging over multiple runs. Another option is to do \emph{Brent's method root finding}\cite{Brent} with \emph{spline interpolation}.
+
+From then on, we shall investigate scaling of the coherence lifetime with respect to both lattice size and temperature. This allows us to easily predict how much time is sufficient for a system to reach thermodynamic equilibrium. 
+
+\subsection{Heat capacity.}\label{sec:heat_capacity}
+
+The \emph{fluctuation-dissipation} theorem\cite{fdt} states that
+
+\begin{equation}\label{eq:fluctuation-dissipation theorem}
+  C_v = \frac{\sigma_E^2}{ {(k_B T)}^2}
+\end{equation}
+
+Where \( \sigma_E = \sqrt{\langle  {(E - \langle E \rangle)}^2 \rangle}\), i.e~the standard deviation of the mean energy per unit area.
+
+Thus heat capacity, reaches a maximum nearing the critical temperature, due to critical slowdown\footnote{i.e.~because the system is less able to suppress fluctuations.}. We can find this peak to high precision using spline interpolation. 
+
+However, critical slowdown complicates obtaining data near critical temperature. We need to let the system run long-enough to reach equilibrium, and to do this efficiently, we shall mimic the temperature scaling from sec:\ref{sec:auto_correlation}. 
+
+\subsection{Finite size scaling.}\label{sec:scaling}
+
+In the limit \(N \rightarrow \inf \), Onsager showed\cite{Onsager} that the critical temperature is
+
+\begin{equation}\label{eq:onsager}
+  T_C (\infty)= \frac{2}{\ln(1 + \sqrt{2})}
+\end{equation}
+
+We expect this to scale with the lattice size\cite{fss} according to
+
+\begin{equation}\label{eq:scaling}
+  T_c(N) = T_C(\infty) + a N ^{-1/\nu}
+\end{equation}
+
+where \(a\) is a constant, \(\nu\) is the critical exponent for the desired quantity\cite{fssCardy}, \(T_c(\infty)\) is our estimate of Onsager's result. 
+
+\subsection{External field coupling.}\label{sec:chi}
+
+Materials are often convenient to describe using material `constants',\footnote{Insofar, as they depend on the material's internal state. } such as magnetic susceptibility, permeability etc. To avoid issues with hysteresis let us define the \emph{dynamic susceptibility} (of the lattice) as
+
+\begin{equation}\label{eq:susceptibility}
+  d M = \chi dH
+\end{equation}
+
+So far, a thermally dominated system could only converge to a state of maximum disorder, when \(M = 0\) due to symmetry. Indeed, keeping all external conditions the same by symmetry of the problem, and inverting the system would invert \(M \rightarrow -M\). But by assumption in maximum disorder, the distribution of spins in the lattice should be uniform, therefore invariant under the inversion. Hence \(M = -M\). The external field, however breaks the symmetry of external conditions, hence the lattice can now be in equilibrium at magnetisations other than \(M = 0, 1\).
+
+Dynamic magnetic susceptibility \(\chi \):
+
+\begin{equation}\label{eq:dynamic_chi}
+  \chi = \frac{\partial M}{\partial H}
+\end{equation}
+
+thus, should also show a critical transition, most likely at a higher temperature \(T_C = T_C (H)\).
+
+First of all, we shall check that the linear approximation of magnetic response is valid. Thenceforth, by doing linear regression for \(M = M (H)\), obtain dynamic susceptibility, and plot it against different temperatures. 
+
+Of course this is a crude model, and one might achieve better precision by using the fluctuation-dissipation theorem\cite{fdt}:
+
+\begin{equation}\label{eq:fluctuation-dissipation-magnetisation}
+ \chi \propto \frac{\sigma_M^2}{ {(k_B T)}}
+\end{equation}
+
+and essentially repeating the analysis from Section~\ref{sec:heat_capacity}, with \(H \) in the role of \(N\).
+
+\section{Discussion}\label{sec:discussion}
+
+\subsection{Time evolution. }
+
+\begin{figure}[p]
+  \begin{subfigure}[b] {0.49\textwidth}
+    \includegraphics[trim=0.2cm 0.4cm 1cm 1cm, clip, height=.27\textheight]{figures/Evolution_from_chequerboard_pattern_of_grain_size_0x0.eps}
+    \caption{Evolution from completely ordered initial state}
+  \end{subfigure}\ 
+  \begin{subfigure}[b] {0.49\textwidth}
+    \includegraphics[trim=1cm 0.4cm 1cm 1cm, clip, height=.27\textheight]{figures/Evolution_from_chequerboard_pattern_of_grain_size_3x3.eps}
+    \caption{Evolution from chequerboard pattern with cell size of \(3\)}
+  \end{subfigure}\newline
+  \begin{subfigure}[b] {0.49\textwidth}
+    \includegraphics[trim=0.2cm 0.4cm 1cm 1cm, clip, height=.27\textheight]{figures/Evolution_from_chequerboard_pattern_of_grain_size_10x10.eps}
+    \caption{Evolution from chequerboard pattern with cell size of \(10\)}
+  \end{subfigure}\newline
+  \caption[Time evolution]{Time evolution of magnetisation and mean energy per spin, for different starting conditions. }\label{fig:time_evolution}
+\end{figure}
+
+Figure~\ref{fig:time_evolution} shows, that given a totally ordered initial state the system evolves along two paths:
 
 \begin{enumerate}
 \item System remains ordered. True for sub-critical temperatures. Here any fluctuation about a completely ordered state is quickly suppressed by spin-spin interactions.
 \item System decays to a disordered state. This occurs for super-critical temperatures. Here fluctuations are being suppressed by random spin flipping. 
 \end{enumerate}
 
-If the system starts from a different configuration, e.g.~a chequerboard pattern, we could have very different behaviour. The spins form what are known as \emph{domains}, and depending on the temperature can grow or shrink. In some cases, given sub-critical temperature, the system may lose some but not all of its domains, resulting in mean magnetisation that's different to \(0\) or \(1\).
+Other initial configurations, e.g.~a chequerboard pattern,  where spins are grouped into uniform square \emph{domains}, show the same overall behaviour. In some cases, given sub-critical temperature, such a system may lose some but not all of its domains, resulting in a sustained equilibrium magnetisation other than unity. This phenomenon is called domain wall pinning.
 
-This phenomenon accounts for the slight difference between \emph{remanent magnetisation}\footnote{magnetisation present in a sample of a magnetically susceptible material, after a field was applied to it and switched off. } of the sample, and magnetisation when the external field was removed.
+One can also notice that for temperatures approaching the critical value, reaching equilibrium takes more Monte-Carlo steps. This is called the \emph{critical slowdown}, and it's caused by the two competing tendencies: to maximum entropy and minimising spin-spin interactions being comparable, near critical temperature. 
 
-Interestingly the larger domains are less susceptible to this type of behaviour.
 
-(TODO)
 
-One can also notice that for temperatures approaching a critical temperature, the process of reaching equilibrium takes more Monte-Carlo steps. This is known as the \emph{critical slowdown}, and owes to the fact that the two driving forces: thermal and spin-spin interactions are comparable near critical temperature, hence the net driving force is near-zero. 
+\subsection{Autocorrelation.}
 
-\subsection{Critical transitions}
+Figure~\ref{fig:auto_time_plot} shows the autocorrelation dependence on lag time. Each data point with the corresponding error-bar, is the result of five runs. Interestingly, multiple re-runs of the simulation do not yield noise reduction, and the error in each datum is negligible. This suggests that the autocorrelation is a deterministic function of the process, and not the state.
 
-As expected, the simulation did exhibit a critical transition. Namely mean magnetisation underwent a step-like transition from a totally ordered state to a totally disordered one. Of course, due to critical slowdown, we should expect for the transition to be smoothed out.
+Next, consider fig.~\ref{fig:coherence_temp}, the size-averaged\footnote{Arguably, it would have been better to plot different series, for each lattice size, however, that plot would not have given useful information due to noise, which as mentioned previously I was not able to mitigate.} temperature dependence of the coherence lifetime \(\tau_e\). We can see manifestations of critical slowdown: the central peak. We also know that temporal coherence of the spin lattice is dominated by temperature, but also scales with size. However, the nature of that scaling is hard to deduce: on average, size scaling is negligible compared to temperature scaling.
 
-Mean energy, would also undergo a transition from a low negative value (order), to a high negative value (relative disorder). This transition, however is much more affected by the aforementioned smoothing. Indeed, it's extremely difficult to distinguish between the serrations and the transition. 
+Thus, to accurately mimic the profile of equilibration timescales, one would fit a Lorentzian to the coherence lifetime profile and set the simulation durations to a large multiple of the best fit.~\footnote{However, this often fails (noisy data), so I've hard-coded the parameters of the last successful fit in \texttt{smart\_duration} (see sec.\ref{sec:an_tools})}. Accounting for the large errors in the data, we can also estimate \(T_C(\inf) = 2.39 \pm 0.13\), which is within one standard error of Onsager's result. 
 
-These two can, hypothetically,  be used to determine the critical transition temperature, however, because of the inherent unpredictability of each simulation, even when run over a very long time, we can expect serrations of both magnetisation and energy which will negatively impact any attempt of fitting a step function. Thus the plots (TODO) serve illustration purposes only.
+\begin{figure}[hp]
+  \centering
+  \includegraphics[width = \textwidth]{figures/Autocorrelation.eps}
+  \caption{Autocorrelation as a function of time. }\label{fig:auto_time_plot}
+\end{figure}
 
-Of course, if the simulation is to be re-run several times, to decrease the probability of random fluctuations imprinting on the terminal magnetisation/energy, the problem can be mitigated. Indeed, if we run for a shorter time, but average over several runs of the simulation, the effect of random fluctuations on the final value is reduced, which allows us to smooth out some of these serrations. 
+\begin{figure}[hp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/Coherence_lifetime_vs._lattice_size.eps}
 
-Note also that larger lattices are less affected by the critical slowdown. This again stems from reducing the effects of random fluctuations. 
+  \caption{Coherence lifetime as a function of lattice size. }\label{fig:coherence_size}
+\end{figure}
 
-\subsection{Auto-correlation}
-
-\subsection{Heat capacity }\label{sec:heat_capacity}
-
-The \emph{fluctuation-dissipation} theorem states that
-
-\begin{equation}\label{eq:fluctuation-dissipation theorem}
-  C_v = \frac{\sigma_E^2}{ {(k_B T)}^2}
-\end{equation}
-
-Where \( \sigma_E = \sqrt{\langle  {(E - \langle E \rangle)}^2 \rangle}\), i.e~the standard deviation of the mean energy per unit area. This heat capacity, reaches a maximum when nearing the critical temperature, due to the critical slowdown i.e.~because the system is less able to suppress fluctuations.
-
-We can then attempt a six-parameter non-linear fit to the heat capacity, to recover the critical temperature. If the fitting function is a Lorentzian,
-
-\begin{equation}\label{eq:Lorentzian}
-  f(t) = c + \frac{b}{{(t - a)}^2 + d}
-\end{equation}
-
-the offset parameter \(a\) in (\ref{eq:Lorentzian}) will be our best estimate of critical temperature. 
-
-This complicates obtaining data near the critical temperature. If we don't let the system run long-enough it will not reach equilibrium. If it, taking the standard deviation is more likely to show a step, rather than a resonance profile, as then the mean (with respect to which the standard deviation is taken) will be a non-equilibrium value. Thus every point near equilibrium will contribute a large deviation.
-
-As in the previous case, the serrations can be reduced by averaging over multiple runs. This averaging also gives us a sense of the variance of the data, and allows us to fine tune the non-linear fit to account for uncertainties in the heat capacity.
-
-\subsection{Finite size scaling}\label{sec:scaling}
-
-In the limit of an infinite lattice, Onsager has shown that a system will have a critical transition at temperature. 
-
-\begin{equation}\label{eq:onsager}
-  T_C (\infty)= \frac{2}{\ln(2 + \sqrt{2})}
-\end{equation}
-
-Which we expect will scale with the lattice size according to
-
-\begin{equation}\label{eq:scaling}
-  T_c(N) = T_C(\infty) + a N ^{-1/\nu}
-\end{equation}
-
-where \(a\) and \(\nu\) are fitting parameters, alongside \(T_c(\infty)\). Since (\ref{eq:scaling}) has three degrees of freedom, we shall perform a non-linear fit.
-
-\subsection{External field coupling}\label{sec:chi}
-
-We also expect there to be a critical transition in magnetic susceptibility: \(\chi \), which characterises the ensemble's response to an external field \(H\).
-
-\section{Results}
-
-(TODO)
+\begin{figure}[hp]
+  \includegraphics[width=\textwidth]{figures/Coherence_lifetime_vs._temperature.eps}
+  \caption{Coherence lifetime as a function of temperature.}\label{fig:coherence_temp}
+\end{figure}
 
   
+\subsection{Critical transitions.}
 
-\section{Discussion}\label{sec:discussion}
+\subsubsection{Magnetisation and energy transitions.}
 
-\subsection{Agreement with theory}\label{sec:agreement}
+The expected step-like transitions are given in plot~\ref{fig:first_order_transitions}. Small error-bars indicate that we have sufficiently equilibrated the system. 
 
-As seen in figure (TODO), the time evolution happens exactly as described in section~\ref{sec:time_evolution}.
+\begin{figure}[hp]
+  \includegraphics[width=0.98\textwidth]{figures/Critical_temperature_from_magnetisation.eps}
+  \caption{First order phase transitions. The transition in energy is barely noticeable. Magnetisation shows a pronounced step. Large error-bars would indicate that  the system hasn't reached equilibrium.}\label{fig:first_order_transitions}
+\end{figure}
 
-The critical transitions do indeed occur, and produce a step-down in absolute value of magnetisation (per unit area).
+\subsubsection{Heat capacity.}
 
-The transitions in heat capacity appear as expected and satisfy the scaling relation (\ref{eq:scaling}). (TODO)
+The data are shown in figure~\ref{fig:capacity_plot}. One can see peaks in \(C_V\), getting narrower as they converge upon Onsager's prediction for an infinite lattice: \( \propto \log ( T - T_C)\). Again notice that the error-bars are negligible, indicating that the simulation was run for sufficiently long a time. 
+
+\begin{figure}[hp]
+  \includegraphics[width=0.98\textwidth]{figures/Heat_capacity.eps}
+  \caption[capacity_plot]{Heat Capacity data. The dashed vertical line indicates Onsager's result for \(T_C(\inf)\). The estimated location of the critical temperature for each lattice size is indicated by a blue dot. }\label{fig:capacity_plot}
+\end{figure}
+
+\subsubsection{Magnetic  fluctuations.}
+
+Much like the previous case, the critical temperatures are in Table~\ref{tab:magnetic-fluctuations}. Notice that since we have applied an external field of \(H = 1.0\), the critical temperatures have shifted upwards
+
+\begin{wraptable}{l}{0.3\textwidth}  
+  \caption{Critical temperatures from magnetic fluctuations}\label{tab:magnetic-fluctuations}
+
+    \begin{tabular}{l|c|r}
+      \(N\) & \(T_C\) & \(\sigma T_C\)\\
+      \hline
+      16 & 2.69 & 0.36 \\
+      46 & 2.61 & 0.28 \\
+      76 & 2.58 & 0.25\\
+      106& 2.57 & 0.31\\
+    \end{tabular}
+\end{wraptable}
+
+\subsubsection{Finite size scaling.}
+
+The results of the nonlinear fit can be seen in figure~\ref{fig:finite_size_scaling_capacity} for heat capacity and figure~\ref{fig:finite_size_scaling_magnetisation} for magnetisation. The estimated values for \(T_C (\inf)\) are \( T_C ^{M} (\inf)  3.4 \pm  0.7\) for magnetisation and \( T_C^{C}(\inf)  = 2.26 \pm 0.01\) for heat capacity, both within one standard error of \(T_C\).
+
+As theory suggests\cite{critExps}, we would also expect for \( \nu \) for each case is the critical exponent for the respective order parameter: for heat capacity it should be \( \nu =1\), measured -- \( \nu = 1.44 \pm 0.52\), and for magnetisation it should be \( \nu = 7/4\), measured -- \( \nu = 1.88 \pm 0.7\). Hence our data show remarkable agreement with Theory. The large errors and the few 
+
+\begin{figure}[hp]
+  \begin{subfigure}[t] {0.76\textwidth}
+    \includegraphics[width=\textwidth]{figures/Finite_size_scaling,_from_capacity.eps}
+    \caption{Finite size scaling: specific heat and best fit. }\label{fig:finite_size_scaling_capacity}
+  \end{subfigure}
+  \begin{subfigure}[b] {0.76\textwidth}
+    \includegraphics[width=\textwidth]{figures/Finite_size_scaling,_from_Magnetisation.eps}
+    \caption{Finite size scaling: magnetisation and best fit. Note that the temperature is scaled down by a factor of 10, to help the numerical routine with the fit. }\label{fig:finite_size_scaling_magnetisation}
+  \end{subfigure}
+\end{figure}
 
 
 
-\subsection{Implementation}\label{sec:implementation}
 
-For this particular project it was elected to separate the program into two pieces: a high performance simulation written in c++, as well as a python script that analyses the data generated by the compiled program. The two communicate either through temporary files in the \texttt{data/} directory, or directly via a \texttt{Unix pipe}. The former has the advantage of allowing data reuse, while the latter can be used for benchmarking.
+\subsubsection{Dynamic susceptibility.}
 
+The system's magnetic response to an applied external field \(H\) is given in fig.~\ref{fig:m_vs_h}. We can see that the linear response approximation is valid. 
 
-\subsubsection{C++ program}
+\begin{figure}[hp]
+  \includegraphics[width=0.98\textwidth]{figures/Magnetisation_vs._external_field.eps}
+  \caption{System's response to external field, and linear fit.}\label{fig:m_vs_h}
+\end{figure}
 
-This program, when given the optional arguments \texttt{-j}, \texttt{-H}, \texttt{-n} and \texttt{-t}\(J\), \(H\), \(N\) and \(T\) produces and simulates a lattice of size \(N \times N\) and writes statistics about the simulation either to a file (if given an \texttt{-f filename.csv} optional argument) or directly to stdout, to be piped to another program. This program runs the simulations either for 500 Monte-Carlo steps, or optionally, to the number specified by \texttt{-d duration} option. 
+Next, we obtain the dependence differential susceptibility on the temperature, and although we an show that a critical transition does occur, it takes place far from \(T_C\). Moreover, it seems to be unaffected by different lattice sizes.
 
-The C++ code was optimised for speed.
-
-The program only computes statistics data (e.g.~mean magnetisation) when it prints. This reduces the performance penalty associated with running the simulation for a large number of Monte-Carlo steps.
-
-Effort was put into making the simulation multi-threaded, which yields an almost perfect scaling: the run-time is reduced by a factor of the number of physical CPU cores in the target machine.
-
-Since the list of possible values of \(\Delta E\) is restricted, a technique called memoization can be used to further improve performance. 
-
-Additionally aggressive speed-optimisation compiler flags (\texttt{-O3}) could produce a further performance increase, if the supplied \texttt{makefile} is used. 
-
-\subsubsection{Python script}
-
-This script performs all the data analysis in this project. By default this program will attempt to load simulation data from other runs, however it can be instructed to perform all data manipulations in memory by specifying the \texttt{-r} option.
-
-This program follows the suggested investigations by providing an investigator function for each. These functions only have keyword arguments, hence can be simply called sequentially. If one so chooses, however, other parameters can be specified.
-
-Notable optimisations:
-\begin{itemize}
-\item \texttt{investigate_time_dependence()} adjusts simulation duration depending on lattice size, initial_temperature's proximity to the theoretical critical value. This conserves computation time for simulations that are unlikely to be affected by the critical slowdown. To first order the time to reach equilibrium can be thought of as \emph{Lorentzian}\footnote{A Lornetzian is the frequency-response function of a damped harmonic oscillator, with a sinusoidal driving force. } of temperature, which was used to taper the duration.
-\item \texttt{investigate_heat_capacity()} uses a non-linear fit with restricted values. These restrictions are common sense, guide the algorithm significantly during the fit.
-  
-\end{itemize}
-
-Overall the implementations are self-documenting, and particular decisions are outlined in the source code's comments. 
+\begin{figure}[hp]
+  \includegraphics[width=0.98\textwidth]{figures/Susceptibility_vs_Temperature.eps}
+  \caption{Plot of differential susceptibility. }\label{fig:differential_susceptibility}
+\end{figure}
 
 \section{Conclusions}\label{sec:conclusions}
 
+We have, thus investigated the basic results of Onsager's solution to the 2D Ising model. We have evaluated the critical temperatures (TODO) and extrapolated the results for an infinite lattice, to within one standard error and four standard errors in heat capacity and magnetisation order paramters respectively. We have also shown that the scaling relations predict the same scaling exponents for the aforementioned cases.
+
+We have shown that the 2D lattice behaves much like a Ferromagnetic material, and that it shows a critical transition in magnetic susceptibility.
+
+We have encountered persistent noise that deterred us from performing the full analysis of critical exponents, in sec.~\ref{sec:auto_correlation}, however, we have managed to obtain a \(T_C(\inf) = 2.39 \pm 0.13\)result consistent with Onsager's 
+
+To further explore the Ising Model, we could generalise the simulation to higher dimensions. Although no analytical result is known to exist in more than two dimensions, one can compare the results of this simulation to the slew of experimental data. Another suggestion, to improve the efficiency of the simulation is to use the Wolff algorithm, which improves the performance of the simulation near critical temperatures.
+
+Another unexplored area is the convergence of the scaling relations to the asymptotic solutions. 
 \section{Appendices}\label{sec:appendices}
 
 
-\section{References}\label{sec:references}
+\subsection{Python Script.}
+\subsubsection{investigator.py}\label{sec:investigator}
+This is the entry point to our simulation and the only program that needs to be run. It contatins the code for all main investigations, and handles output. 
+\subsubsection{AnalysisTools.py}\label{sec:an_tools}
+This is the library containting common helper functions It contains the implementation of \texttt{parmap}.
+\subsection{C++ program.}
+\subsubsection{makefile}\label{sec:makefile}
+The \texttt{gnu make} script to compile the program. By default it uses \texttt{clang++}, due to its superior debugging features. 
+\subsubsection{interface.cpp}\label{sec:interface}
+This is the part of the program that handles user interactions. It parses the command-line arguments, and runs the simulation. 
+\subsubsection{simulation.cpp}\label{sec:simulation}
+This file contains the logic of the simulation: it implements the advance method and keeps track of internal state. 
+\subsubsection{lattice.cpp}\label{sec:lattice}
+This is the implementation of the lattice class, defines the periodic boundary conditions etc. The lattice is internally represented by a one dimensional \texttt{std::vector} of short integers which improves both storage efficiency and speed. 
+\subsubsection{include/simulation.h}\label{sec:simulation.h}
+Header file declating the class \texttt{simulation}. Contains inline functions, getters and setters.
+\subsubsection{include/lattice.h}\label{sec:lattice.h}
+Declares the class \texttt{lattice}.
+\subsubsection{include/rng.h}\label{sec:rng.h}
+A wrapper for the Gnu scientific library random number generator. It maps the procedural library functions onto object-oriented programming, making it easier to avoid memory leaks.
+% \section{References}\label{sec:references}
 
-\tableofcontents
+
+
+\bibliographystyle{ieeetr}
+\bibliography{bibliography}
 \end{document}

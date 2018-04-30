@@ -1,5 +1,5 @@
-CXXFLAGS := -std=c++11 -Wall -Wextra -fopenmp -O3
-CXX := /usr/local/bin/g++-7
+CXXFLAGS := -std=c++11 -Wall -Wextra -O3 -fopenmp -march=native
+CXX := clang++
 INC := include
 
 

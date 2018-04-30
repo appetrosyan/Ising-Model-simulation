@@ -45,7 +45,7 @@ Computes total magnetisation in O(n^2). Thread safe
 */
 int lattice::total_magnetisation() {
   int sum = 0;
-  // #pragma omp target teams distribute parallel for reduction(+ : sum)
+  #pragma omp target teams distribute parallel for reduction(+ : sum)
   for (unsigned int i = 0; i < size_ * size_; i++) {
     sum += spins_->at(i);
   }

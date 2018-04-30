@@ -32,20 +32,19 @@ public:
         J_(new_J), H_(new_H) {}
   lattice(const lattice &other) noexcept
       : lattice(other.size_, other.J_, other.H_) {
-#pragma omp parallel for
     for (unsigned int i = 0; i < size_ * size_; i++)
       spins_->at(i) = other.spins_->at(i);
   }
   lattice &operator=(const lattice &);
 
   ~lattice() { delete spins_; }
-  void print();
-  short get(int row, int col) {
+  void print() ;
+  short get(int row, int col) const{
     return spins_->at(to_periodic(row, col, size_));
   }
-  unsigned int get_size() { return size_; }
+  unsigned int get_size()  { return size_; }
   void flip(int row, int col) { spins_->at(to_periodic(row, col, size_)) *= -1; }
-  int total_magnetisation();
+  int total_magnetisation() ;
   float compute_point_energy(int row, int col);
 };
 
